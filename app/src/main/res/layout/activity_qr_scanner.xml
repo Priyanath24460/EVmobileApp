@@ -1,0 +1,113 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:padding="16dp"
+    android:background="#f5f5f5"
+    android:gravity="center">
+
+    <!-- Title -->
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="QR Code Scanner"
+        android:textSize="24sp"
+        android:textStyle="bold"
+        android:gravity="center"
+        android:layout_marginBottom="32dp"
+        android:textColor="#2196F3" />
+
+    <!-- Instructions -->
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Scan a booking QR code to verify and start charging"
+        android:textSize="16sp"
+        android:gravity="center"
+        android:layout_marginBottom="24dp"
+        android:textColor="#666"
+        android:lineSpacingExtra="4dp" />
+
+    <!-- Scan Result Display -->
+    <androidx.cardview.widget.CardView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginBottom="24dp"
+        app:cardCornerRadius="8dp"
+        app:cardElevation="4dp">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:padding="16dp">
+
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="Scan Result:"
+                android:textSize="14sp"
+                android:textColor="#666"
+                android:layout_marginBottom="8dp" />
+
+            <TextView
+                android:id="@+id/tvScanResult"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="Ready to scan..."
+                android:textSize="16sp"
+                android:textStyle="bold"
+                android:textColor="#333"
+                android:background="#e3f2fd"
+                android:padding="12dp"
+                android:gravity="center" />
+
+        </LinearLayout>
+    </androidx.cardview.widget.CardView>
+
+    <!-- Status Indicator -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:gravity="center"
+        android:layout_marginBottom="16dp">
+
+        <View
+            android:layout_width="12dp"
+            android:layout_height="12dp"
+            android:background="@drawable/circle_green"
+            android:layout_marginEnd="8dp" />
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Ready to scan"
+            android:textSize="14sp"
+            android:textColor="#666" />
+
+    </LinearLayout>
+
+    <!-- Manual Entry Button -->
+    <Button
+        android:id="@+id/btnManualEntry"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Enter Booking ID Manually"
+        android:backgroundTint="#757575"
+        android:textColor="@android:color/white"
+        android:layout_marginBottom="16dp" />
+
+    <!-- Rescan Button -->
+    <Button
+        android:id="@+id/btnRescan"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Scan Again"
+        android:backgroundTint="#2196F3"
+        android:textColor="@android:color/white" />
+
+</LinearLayout>

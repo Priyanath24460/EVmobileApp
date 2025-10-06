@@ -1,0 +1,57 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:padding="24dp"
+    android:background="#f5f5f5"
+    android:gravity="center">
+
+    <!-- Welcome Message -->
+    <TextView
+        android:id="@+id/tvWelcome"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Welcome, Station Operator!"
+        android:textSize="20sp"
+        android:textStyle="bold"
+        android:gravity="center"
+        android:layout_marginBottom="48dp"
+        android:textColor="#2196F3"
+        android:lineSpacingExtra="4dp" />
+
+    <!-- Scan QR Code Button -->
+    <Button
+        android:id="@+id/btnScanQR"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Scan QR Code"
+        android:textSize="16sp"
+        android:backgroundTint="#2196F3"
+        android:textColor="@android:color/white"
+        android:layout_marginBottom="16dp" />
+
+    <!-- View Bookings Button -->
+    <Button
+        android:id="@+id/btnViewBookings"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="View Bookings"
+        android:textSize="16sp"
+        android:backgroundTint="#FF9800"
+        android:textColor="@android:color/white"
+        android:layout_marginBottom="16dp" />
+
+    <!-- Logout Button -->
+    <Button
+        android:id="@+id/btnLogout"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Logout"
+        android:textSize="16sp"
+        android:backgroundTint="#757575"
+        android:textColor="@android:color/white"
+        android:layout_marginBottom="16dp" />
+
+</LinearLayout>

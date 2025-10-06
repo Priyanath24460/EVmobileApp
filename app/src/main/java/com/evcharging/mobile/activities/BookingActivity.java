@@ -1,0 +1,347 @@
+package com.evcharging.mobile.activities;
+
+import androidx.annotation.NonNull;
+import androidx.appcompat.app.AppCompatActivity;
+
+import android.app.DatePickerDialog;
+import android.app.TimePickerDialog;
+import android.content.Intent;
+import android.os.Bundle;
+import android.widget.Button;
+import android.widget.TextView;
+import android.widget.Toast;
+
+import com.evcharging.mobile.R;
+import com.evcharging.mobile.api.ApiClient;
+import com.evcharging.mobile.api.ApiService;
+import com.evcharging.mobile.database.AppDatabase;
+import com.evcharging.mobile.database.BookingDao;
+import com.evcharging.mobile.models.Booking;
+import com.evcharging.mobile.models.ChargingStation;
+import com.evcharging.mobile.utils.DateUtils;
+import com.evcharging.mobile.utils.SharedPreferencesHelper;
+import com.google.android.material.textfield.TextInputEditText;
+
+import retrofit2.Call;
+import retrofit2.Callback;
+import retrofit2.Response;
+import java.util.Calendar;
+import java.util.Date;
+
+public class BookingActivity extends AppCompatActivity {
+
+    private TextInputEditText etStation, etDateTime, etDuration;
+    private TextView tvSummary;
+    private Button btnSelectStation, btnSelectDateTime, btnBook, btnCancel;
+
+    private SharedPreferencesHelper prefs;
+    private ApiService apiService;
+    private BookingDao bookingDao;
+
+    private ChargingStation selectedStation;
+    private Date selectedDateTime;
+    private int selectedDuration = 60; // Default 60 minutes
+
+    private Calendar calendar;
+
+    @Override
+    protected void onCreate(Bundle savedInstanceState) {
+        super.onCreate(savedInstanceState);
+        setContentView(R.layout.activity_booking);
+
+        initializeViews();
+        setupDatabase();
+        setupClickListeners();
+
+        // Check if editing existing booking
+        String bookingId = getIntent().getStringExtra("booking_id");
+        if (bookingId != null) {
+            loadBooking(bookingId);
+        }
+    }
+
+    private void initializeViews() {
+        etStation = findViewById(R.id.etStation);
+        etDateTime = findViewById(R.id.etDateTime);
+        etDuration = findViewById(R.id.etDuration);
+        tvSummary = findViewById(R.id.tvSummary);
+        btnSelectStation = findViewById(R.id.btnSelectStation);
+        btnSelectDateTime = findViewById(R.id.btnSelectDateTime);
+        btnBook = findViewById(R.id.btnBook);
+        btnCancel = findViewById(R.id.btnCancel);
+
+    prefs = new SharedPreferencesHelper(this);
+    apiService = ApiClient.getClient(this).create(ApiService.class);
+        calendar = Calendar.getInstance();
+    }
+
+    private void setupDatabase() {
+        AppDatabase database = AppDatabase.getInstance(this);
+        bookingDao = database.bookingDao();
+    }
+
+    private void setupClickListeners() {
+        btnSelectStation.setOnClickListener(v -> showStationSelection());
+        btnSelectDateTime.setOnClickListener(v -> showDateTimePicker());
+        btnBook.setOnClickListener(v -> createBooking());
+        btnCancel.setOnClickListener(v -> finish());
+
+        etDuration.setOnClickListener(v -> showDurationDialog());
+    }
+
+    private void showStationSelection() {
+        // In a real app, you would show a list/dialog of available stations
+        // For demo, we'll use a hardcoded station
+        selectedStation = new ChargingStation(
+                "1",
+                "Colombo City Center Station",
+                "DC",
+                4,
+                true,
+                new ChargingStation.Location("123 Galle Road", "Colombo", 6.9271, 79.8612)
+        );
+
+        etStation.setText(selectedStation.getName());
+        updateSummary();
+    }
+
+    private void showDateTimePicker() {
+        // Date Picker
+        DatePickerDialog datePicker = new DatePickerDialog(
+                this,
+                (view, year, month, dayOfMonth) -> {
+                    calendar.set(Calendar.YEAR, year);
+                    calendar.set(Calendar.MONTH, month);
+                    calendar.set(Calendar.DAY_OF_MONTH, dayOfMonth);
+
+                    // Time Picker
+                    TimePickerDialog timePicker = new TimePickerDialog(
+                            this,
+                            (view1, hourOfDay, minute) -> {
+                                calendar.set(Calendar.HOUR_OF_DAY, hourOfDay);
+                                calendar.set(Calendar.MINUTE, minute);
+
+                                selectedDateTime = calendar.getTime();
+                                etDateTime.setText(DateUtils.formatDateTime(selectedDateTime));
+                                updateSummary();
+                            },
+                            calendar.get(Calendar.HOUR_OF_DAY),
+                            calendar.get(Calendar.MINUTE),
+                            false
+                    );
+                    timePicker.show();
+                },
+                calendar.get(Calendar.YEAR),
+                calendar.get(Calendar.MONTH),
+                calendar.get(Calendar.DAY_OF_MONTH)
+        );
+
+        // Set minimum date to today
+        datePicker.getDatePicker().setMinDate(System.currentTimeMillis());
+        // Set maximum date to 7 days from now
+        calendar.add(Calendar.DAY_OF_MONTH, 7);
+        datePicker.getDatePicker().setMaxDate(calendar.getTimeInMillis());
+        calendar.add(Calendar.DAY_OF_MONTH, -7); // Reset calendar
+
+        datePicker.show();
+    }
+
+    private void showDurationDialog() {
+        // Simple duration selection - in real app, use a proper dialog
+        String[] durations = {"30 minutes", "60 minutes", "90 minutes", "120 minutes"};
+        android.app.AlertDialog.Builder builder = new android.app.AlertDialog.Builder(this);
+        builder.setTitle("Select Duration")
+                .setItems(durations, (dialog, which) -> {
+                    selectedDuration = (which + 1) * 30; // 30, 60, 90, 120
+                    etDuration.setText(durations[which]);
+                    updateSummary();
+                })
+                .show();
+    }
+
+    private void updateSummary() {
+        if (selectedStation != null && selectedDateTime != null) {
+            String summary = "Booking Summary:\n\n" +
+                    "Station: " + selectedStation.getName() + "\n" +
+                    "Type: " + selectedStation.getStationType() + "\n" +
+                    "Date & Time: " + DateUtils.formatDateTime(selectedDateTime) + "\n" +
+                    "Duration: " + selectedDuration + " minutes\n" +
+                    "Location: " + selectedStation.getLocation().getFullAddress();
+
+            tvSummary.setText(summary);
+        }
+    }
+
+    private void createBooking() {
+        if (selectedStation == null || selectedDateTime == null) {
+            Toast.makeText(this, "Please select station and date/time", Toast.LENGTH_SHORT).show();
+            return;
+        }
+
+        if (!DateUtils.isWithinNext7Days(selectedDateTime)) {
+            Toast.makeText(this, "Reservation must be within 7 days", Toast.LENGTH_SHORT).show();
+            return;
+        }
+
+        // Show confirmation dialog
+        showBookingConfirmation();
+    }
+
+    private void showBookingConfirmation() {
+        String confirmationMessage = buildConfirmationMessage();
+        
+        new androidx.appcompat.app.AlertDialog.Builder(this)
+                .setTitle("Confirm Booking")
+                .setMessage(confirmationMessage)
+                .setPositiveButton("Confirm", (dialog, which) -> processBooking())
+                .setNegativeButton("Cancel", null)
+                .show();
+    }
+
+    private String buildConfirmationMessage() {
+        StringBuilder message = new StringBuilder();
+        message.append("Station: ").append(selectedStation.getName()).append("\n\n");
+        
+        java.text.SimpleDateFormat dateFormat = new java.text.SimpleDateFormat("dd MMM yyyy, HH:mm", java.util.Locale.getDefault());
+        message.append("Date & Time: ").append(dateFormat.format(selectedDateTime)).append("\n\n");
+        
+        message.append("Duration: ").append(selectedDuration).append(" minutes\n\n");
+        message.append("Status: Pending (awaiting approval)\n\n");
+        message.append("Note: You will receive a QR code once your booking is approved.");
+        
+        return message.toString();
+    }
+
+    private void processBooking() {
+        Booking booking = new Booking();
+        booking.setEvOwnerNIC(prefs.getLoggedInUserNIC());
+        booking.setChargingStationId(selectedStation.getId());
+        // Create a slotId for this reservation (server expects a slotId)
+        booking.setSlotId("slot-" + selectedStation.getId() + "-" + selectedDateTime.getTime());
+        booking.setReservationDateTime(selectedDateTime);
+        booking.setDurationMinutes(selectedDuration);
+        booking.setStatus("Pending");
+        booking.setBookingDate(new Date());
+
+        // Store station details locally
+        booking.setStationName(selectedStation.getName());
+        booking.setStationAddress(selectedStation.getLocation().getAddress());
+
+        // QR code will be generated when booking is approved
+        booking.setQrCodeData("");
+
+        // Save booking
+        saveBooking(booking);
+    }
+
+    private void saveBooking(Booking booking) {
+        new Thread(() -> {
+            // Generate a local ID
+            booking.setId("LOCAL_" + System.currentTimeMillis());
+            booking.setBookingReference("EVB" + System.currentTimeMillis());
+
+            // Save to local database
+            bookingDao.insert(booking);
+
+            runOnUiThread(() -> {
+                Toast.makeText(this, "Booking created successfully!", Toast.LENGTH_SHORT).show();
+
+                // Try to sync with API if network available
+                syncBookingWithApi(booking);
+
+                // Navigate to confirmation activity
+                Intent intent = new Intent(BookingActivity.this, BookingConfirmationActivity.class);
+                intent.putExtra("booking_id", booking.getId());
+                startActivity(intent);
+                finish();
+            });
+        }).start();
+    }
+
+    private void syncBookingWithApi(Booking booking) {
+        // Debug: log outgoing booking JSON
+        try {
+            com.google.gson.Gson gson = new com.google.gson.Gson();
+            String json = gson.toJson(booking);
+            android.util.Log.d("BOOKING", "Outgoing payload: " + json);
+        } catch (Exception ignored) {}
+
+    // Create a server payload: exclude local-only fields (id, bookingReference)
+    Booking payload = new Booking();
+    payload.setEvOwnerNIC(booking.getEvOwnerNIC());
+    payload.setChargingStationId(booking.getChargingStationId());
+    payload.setSlotId(booking.getSlotId());
+    payload.setReservationDateTime(booking.getReservationDateTime());
+    payload.setDurationMinutes(booking.getDurationMinutes());
+    payload.setStatus(booking.getStatus());
+    payload.setQrCodeData(booking.getQrCodeData());
+
+        // Debug: log full endpoint URL
+        try {
+            String fullUrl = com.evcharging.mobile.BuildConfig.API_BASE_URL + "api/Bookings";
+            android.util.Log.d("BOOKING", "POST to: " + fullUrl);
+        } catch (Exception ignored) {}
+
+        Call<Booking> call = apiService.createBooking(payload);
+        call.enqueue(new Callback<Booking>() {
+            @Override
+            public void onResponse(@NonNull Call<Booking> call, @NonNull Response<Booking> response) {
+                if (response.isSuccessful()) {
+                    Booking serverBooking = response.body();
+                    if (serverBooking != null) {
+                        // Update local booking with server data
+                        new Thread(() -> {
+                            booking.setId(serverBooking.getId());
+                            booking.setBookingReference(serverBooking.getBookingReference());
+                            booking.setStatus(serverBooking.getStatus());
+                            booking.setQrCodeData(serverBooking.getQrCodeData());
+                            bookingDao.update(booking);
+                        }).start();
+                    }
+                } else {
+                    // Log server error and show a message
+                    String err = "Booking sync failed: " + response.code();
+                    try {
+                        if (response.errorBody() != null) {
+                            String errorBody = response.errorBody().string();
+                            err += " - " + errorBody;
+                            android.util.Log.e("BOOKING", "Server error body: " + errorBody);
+                        }
+                    } catch (Exception e) {
+                        android.util.Log.e("BOOKING", "Error reading error body: " + e.getMessage());
+                    }
+                    android.util.Log.e("BOOKING", err);
+                    runOnUiThread(() -> Toast.makeText(BookingActivity.this, "Booking saved locally but failed to sync", Toast.LENGTH_LONG).show());
+                }
+            }
+
+            @Override
+            public void onFailure(@NonNull Call<Booking> call, @NonNull Throwable t) {
+                // Booking remains in local storage for offline use
+                android.util.Log.e("BOOKING", "Sync failure: " + t.getMessage());
+                runOnUiThread(() ->
+                        Toast.makeText(BookingActivity.this, "Booking saved offline", Toast.LENGTH_SHORT).show()
+                );
+            }
+        });
+    }
+
+    private void loadBooking(String bookingId) {
+        new Thread(() -> {
+            Booking booking = bookingDao.getBookingById(bookingId);
+            if (booking != null) {
+                runOnUiThread(() -> {
+                    // Populate fields with booking data
+                    // This would require fetching station details, etc.
+                    etDateTime.setText(DateUtils.formatDateTime(booking.getReservationDateTime()));
+                    etDuration.setText(booking.getDurationMinutes() + " minutes");
+                    selectedDuration = booking.getDurationMinutes();
+                    selectedDateTime = booking.getReservationDateTime();
+
+                    btnBook.setText("Update Booking");
+                    // Update other logic for editing
+                });
+            }
+        }).start();
+    }
+}

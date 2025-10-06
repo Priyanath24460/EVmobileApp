@@ -1,0 +1,40 @@
+<resources>
+    <string name="app_name">EV Charging Mobile</string>
+
+    <!-- Login Activity -->
+    <string name="title_login">Sign In</string>
+    <string name="hint_nic">NIC</string>
+    <string name="hint_password">Password</string>
+    <string name="btn_login">Sign In</string>
+    <string name="btn_register">Create Account</string>
+
+    <!-- Dashboard -->
+    <string name="title_dashboard">Dashboard</string>
+    <string name="btn_new_booking">New Booking</string>
+    <string name="btn_view_history">Booking History</string>
+    <string name="btn_view_map">View Stations</string>
+    <string name="btn_logout">Logout</string>
+
+    <!-- Booking -->
+    <string name="title_new_booking">New Booking</string>
+    <string name="hint_select_station">Select Charging Station</string>
+    <string name="hint_select_datetime">Select Date &amp; Time</string>
+    <string name="hint_duration">Duration</string>
+    <string name="btn_select_station">Select Station</string>
+    <string name="btn_select_datetime">Select Date &amp; Time</string>
+    <string name="btn_book_now">Book Now</string>
+    <string name="btn_cancel">Cancel</string>
+
+    <!-- Station Operator -->
+    <string name="title_station_operator">Station Operator</string>
+    <string name="btn_scan_qr">Scan QR Code</string>
+    <string name="btn_view_bookings">View Bookings</string>
+
+    <!-- Common -->
+    <string name="loading">Loading…</string>
+    <string name="error_network">Network error. Please check your connection.</string>
+    <string name="error_generic">Something went wrong. Please try again.</string>
+    <string name="success_operation">Operation completed successfully</string>
+
+    <string name="google_maps_key">AIzaSyCxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx</string>
+</resources>
