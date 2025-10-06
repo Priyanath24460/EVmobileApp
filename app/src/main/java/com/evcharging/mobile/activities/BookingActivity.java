@@ -21,12 +21,14 @@ import com.evcharging.mobile.models.ChargingStation;
 import com.evcharging.mobile.utils.DateUtils;
 import com.evcharging.mobile.utils.SharedPreferencesHelper;
 import com.google.android.material.textfield.TextInputEditText;
+import android.view.View;
 
 import retrofit2.Call;
 import retrofit2.Callback;
 import retrofit2.Response;
 import java.util.Calendar;
 import java.util.Date;
+import java.util.List;
 
 public class BookingActivity extends AppCompatActivity {
 
@@ -90,19 +92,69 @@ public class BookingActivity extends AppCompatActivity {
     }
 
     private void showStationSelection() {
-        // In a real app, you would show a list/dialog of available stations
-        // For demo, we'll use a hardcoded station
-        selectedStation = new ChargingStation(
-                "1",
-                "Colombo City Center Station",
-                "DC",
-                4,
-                true,
-                new ChargingStation.Location("123 Galle Road", "Colombo", 6.9271, 79.8612)
-        );
+        // Show loading indicator
+        android.app.ProgressDialog progressDialog = new android.app.ProgressDialog(this);
+        progressDialog.setMessage("Loading charging stations...");
+        progressDialog.setCancelable(false);
+        progressDialog.show();
 
-        etStation.setText(selectedStation.getName());
-        updateSummary();
+        // Fetch active charging stations from API
+        Call<java.util.List<ChargingStation>> call = apiService.getActiveStations();
+        call.enqueue(new Callback<java.util.List<ChargingStation>>() {
+            @Override
+            public void onResponse(@NonNull Call<java.util.List<ChargingStation>> call, @NonNull Response<java.util.List<ChargingStation>> response) {
+                progressDialog.dismiss();
+                if (response.isSuccessful() && response.body() != null) {
+                    java.util.List<ChargingStation> stations = response.body();
+                    if (!stations.isEmpty()) {
+                        showStationSelectionDialog(stations);
+                    } else {
+                        Toast.makeText(BookingActivity.this, "No active charging stations available", Toast.LENGTH_SHORT).show();
+                    }
+                } else {
+                    Toast.makeText(BookingActivity.this, "Failed to load charging stations", Toast.LENGTH_SHORT).show();
+                }
+            }
+
+            @Override
+            public void onFailure(@NonNull Call<java.util.List<ChargingStation>> call, @NonNull Throwable t) {
+                progressDialog.dismiss();
+                // Show error and offer to try again
+                new androidx.appcompat.app.AlertDialog.Builder(BookingActivity.this)
+                        .setTitle("Network Error")
+                        .setMessage("Failed to load charging stations. Please check your internet connection and try again.")
+                        .setPositiveButton("Retry", (dialog, which) -> showStationSelection())
+                        .setNegativeButton("Cancel", null)
+                        .show();
+            }
+        });
+    }
+
+    private void showStationSelectionDialog(java.util.List<ChargingStation> stations) {
+        android.app.AlertDialog.Builder builder = new android.app.AlertDialog.Builder(this);
+        View dialogView = getLayoutInflater().inflate(R.layout.dialog_station_selection, null);
+        
+        androidx.recyclerview.widget.RecyclerView rvStations = dialogView.findViewById(R.id.rvStations);
+        android.widget.Button btnCancel = dialogView.findViewById(R.id.btnCancel);
+        
+        rvStations.setLayoutManager(new androidx.recyclerview.widget.LinearLayoutManager(this));
+        
+        com.evcharging.mobile.adapters.ChargingStationAdapter adapter = new com.evcharging.mobile.adapters.ChargingStationAdapter(this);
+        adapter.setStations(stations);
+        rvStations.setAdapter(adapter);
+        
+        android.app.AlertDialog dialog = builder.setView(dialogView).create();
+        
+        adapter.setOnStationClickListener(station -> {
+            selectedStation = station;
+            etStation.setText(selectedStation.getName());
+            updateSummary();
+            dialog.dismiss();
+        });
+        
+        btnCancel.setOnClickListener(v -> dialog.dismiss());
+        
+        dialog.show();
     }
 
     private void showDateTimePicker() {
