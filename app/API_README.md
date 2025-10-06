@@ -1,7 +1,7 @@
 This app is configured to use the Render-hosted API by default.
 
 Base URL:
-https://webserverapi-vc37.onrender.com/
+https://evwebserverapi.onrender.com/
 
 How it works:
 - The Retrofit client reads the API base URL from BuildConfig.API_BASE_URL at build time.

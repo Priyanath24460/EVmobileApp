@@ -23,14 +23,14 @@ android {
         }
 
     // BuildConfig fields
-    buildConfigField("String", "API_BASE_URL", "\"https://webserverapi-vc37.onrender.com/\"")
+    buildConfigField("String", "API_BASE_URL", "\"https://evwebserverapi.onrender.com/\"")
     }
 
     buildTypes {
         getByName("debug") {
             applicationIdSuffix = ".debug"
             isDebuggable = true
-            buildConfigField("String", "API_BASE_URL", "\"https://webserverapi-vc37.onrender.com/\"")
+            buildConfigField("String", "API_BASE_URL", "\"https://evwebserverapi.onrender.com/\"")
         }
         getByName("release") {
             isMinifyEnabled = false
@@ -39,7 +39,7 @@ android {
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
             )
-            buildConfigField("String", "API_BASE_URL", "\"https://webserverapi-vc37.onrender.com/\"")
+            buildConfigField("String", "API_BASE_URL", "\"https://evwebserverapi.onrender.com/\"")
         }
     }
 

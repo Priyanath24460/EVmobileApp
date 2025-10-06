@@ -51,7 +51,7 @@ public class SharedPreferencesHelper {
     }
 
     public String getApiBaseUrl() {
-        return preferences.getString(KEY_API_BASE_URL, "https://webserverapi-vc37.onrender.com/");
+        return preferences.getString(KEY_API_BASE_URL, "https://evwebserverapi.onrender.com/");
     }
 
     public void clearUserData() {
