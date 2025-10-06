@@ -172,35 +172,49 @@ public class EVOwnerDashboardActivity extends AppCompatActivity {
 
         ApiService api = ApiClient.getClient(this).create(ApiService.class);
         
-        // Get pending count
+        // Get pending count - SERVER FIRST
         Call<Integer> pendingCall = api.getPendingBookingsCount(currentUserNIC);
         pendingCall.enqueue(new Callback<Integer>() {
             @Override
             public void onResponse(Call<Integer> call, Response<Integer> response) {
                 if (response.isSuccessful() && response.body() != null) {
                     tvPendingCount.setText(String.valueOf(response.body()));
+                } else {
+                    // Server error - show 0 (fresh state)
+                    tvPendingCount.setText("0");
                 }
             }
 
             @Override
             public void onFailure(Call<Integer> call, Throwable t) {
-                // Silently fail - keep local counts
+                // Network error - fallback to local count
+                new Thread(() -> {
+                    int localCount = bookingDao.getPendingBookingCount(currentUserNIC);
+                    runOnUiThread(() -> tvPendingCount.setText(String.valueOf(localCount)));
+                }).start();
             }
         });
 
-        // Get approved count
+        // Get approved count - SERVER FIRST
         Call<Integer> approvedCall = api.getApprovedBookingsCount(currentUserNIC);
         approvedCall.enqueue(new Callback<Integer>() {
             @Override
             public void onResponse(Call<Integer> call, Response<Integer> response) {
                 if (response.isSuccessful() && response.body() != null) {
                     tvApprovedCount.setText(String.valueOf(response.body()));
+                } else {
+                    // Server error - show 0 (fresh state)
+                    tvApprovedCount.setText("0");
                 }
             }
 
             @Override
             public void onFailure(Call<Integer> call, Throwable t) {
-                // Silently fail - keep local counts
+                // Network error - fallback to local count
+                new Thread(() -> {
+                    int localCount = bookingDao.getApprovedBookingCount(currentUserNIC);
+                    runOnUiThread(() -> tvApprovedCount.setText(String.valueOf(localCount)));
+                }).start();
             }
         });
     }

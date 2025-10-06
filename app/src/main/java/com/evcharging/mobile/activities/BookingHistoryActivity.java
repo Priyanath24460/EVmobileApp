@@ -42,11 +42,19 @@ public class BookingHistoryActivity extends AppCompatActivity {
     }
 
     private void syncBookingsFromServer() {
-        if (currentUserNIC == null || currentUserNIC.isEmpty()) return;
+        if (currentUserNIC == null || currentUserNIC.isEmpty()) {
+            loadAllBookings(); // Fallback to local if no user
+            return;
+        }
 
         com.evcharging.mobile.api.ApiService api = com.evcharging.mobile.api.ApiClient.getClient(this).create(com.evcharging.mobile.api.ApiService.class);
         
-        // Get upcoming bookings
+        // Clear local database first to ensure fresh data
+        new Thread(() -> {
+            bookingDao.deleteAllBookingsForUser(currentUserNIC);
+        }).start();
+        
+        // Get upcoming bookings - SERVER FIRST
         retrofit2.Call<java.util.List<com.evcharging.mobile.models.Booking>> upcomingCall = api.getUpcomingBookings(currentUserNIC);
         upcomingCall.enqueue(new retrofit2.Callback<java.util.List<com.evcharging.mobile.models.Booking>>() {
             @Override
@@ -54,25 +62,31 @@ public class BookingHistoryActivity extends AppCompatActivity {
                 if (response.isSuccessful() && response.body() != null) {
                     java.util.List<com.evcharging.mobile.models.Booking> serverBookings = response.body();
                     new Thread(() -> {
+                        // Insert fresh server data
                         for (com.evcharging.mobile.models.Booking b : serverBookings) {
                             try {
-                                bookingDao.upsert(b);
+                                bookingDao.insert(b);
                             } catch (Exception e) { e.printStackTrace(); }
                         }
                         runOnUiThread(() -> loadAllBookings());
                     }).start();
                 } else {
-                    runOnUiThread(() -> loadAllBookings());
+                    // Server error - show empty list (no stale data)
+                    runOnUiThread(() -> bookingAdapter.setBookings(new java.util.ArrayList<>()));
                 }
             }
 
             @Override
             public void onFailure(retrofit2.Call<java.util.List<com.evcharging.mobile.models.Booking>> call, Throwable t) {
-                runOnUiThread(() -> loadAllBookings());
+                // Network error - fallback to local data only as last resort
+                runOnUiThread(() -> {
+                    android.widget.Toast.makeText(BookingHistoryActivity.this, "No internet connection. Showing offline data.", android.widget.Toast.LENGTH_SHORT).show();
+                    loadAllBookings();
+                });
             }
         });
 
-        // Also get booking history
+        // Get booking history - SERVER FIRST
         retrofit2.Call<java.util.List<com.evcharging.mobile.models.Booking>> historyCall = api.getBookingHistory(currentUserNIC);
         historyCall.enqueue(new retrofit2.Callback<java.util.List<com.evcharging.mobile.models.Booking>>() {
             @Override
@@ -80,9 +94,10 @@ public class BookingHistoryActivity extends AppCompatActivity {
                 if (response.isSuccessful() && response.body() != null) {
                     java.util.List<com.evcharging.mobile.models.Booking> historyBookings = response.body();
                     new Thread(() -> {
+                        // Insert fresh server data
                         for (com.evcharging.mobile.models.Booking b : historyBookings) {
                             try {
-                                bookingDao.upsert(b);
+                                bookingDao.insert(b);
                             } catch (Exception e) { e.printStackTrace(); }
                         }
                     }).start();
@@ -124,6 +139,64 @@ public class BookingHistoryActivity extends AppCompatActivity {
                 loadPastBookings();
             }
         });
+        
+        // Set up booking adapter listeners
+        bookingAdapter.setOnCancelClickListener(this::cancelBooking);
+        bookingAdapter.setOnBookingClickListener(this::openBookingDetails);
+    }
+    
+    private void cancelBooking(com.evcharging.mobile.models.Booking booking) {
+        new androidx.appcompat.app.AlertDialog.Builder(this)
+                .setTitle("Cancel Booking")
+                .setMessage("Are you sure you want to cancel this booking?\n\nStation: " + booking.getStationName() + "\nDate: " + com.evcharging.mobile.utils.DateUtils.formatDateTime(booking.getReservationDateTime()))
+                .setPositiveButton("Yes, Cancel", (dialog, which) -> performBookingCancellation(booking))
+                .setNegativeButton("No", null)
+                .show();
+    }
+    
+    private void performBookingCancellation(com.evcharging.mobile.models.Booking booking) {
+        // Show progress
+        android.app.ProgressDialog progressDialog = new android.app.ProgressDialog(this);
+        progressDialog.setMessage("Cancelling booking...");
+        progressDialog.setCancelable(false);
+        progressDialog.show();
+        
+        // Update local database first
+        new Thread(() -> {
+            booking.setStatus("Cancelled");
+            bookingDao.update(booking);
+            
+            runOnUiThread(() -> {
+                // Sync with server
+                com.evcharging.mobile.api.ApiService apiService = com.evcharging.mobile.api.ApiClient.getClient(this).create(com.evcharging.mobile.api.ApiService.class);
+                retrofit2.Call<Void> call = apiService.cancelBooking(booking.getId());
+                call.enqueue(new retrofit2.Callback<Void>() {
+                    @Override
+                    public void onResponse(retrofit2.Call<Void> call, retrofit2.Response<Void> response) {
+                        progressDialog.dismiss();
+                        if (response.isSuccessful()) {
+                            android.widget.Toast.makeText(BookingHistoryActivity.this, "Booking cancelled successfully", android.widget.Toast.LENGTH_SHORT).show();
+                            // Refresh the list
+                            syncBookingsFromServer();
+                        } else {
+                            android.widget.Toast.makeText(BookingHistoryActivity.this, "Booking cancelled locally but failed to sync with server", android.widget.Toast.LENGTH_LONG).show();
+                        }
+                    }
+                    
+                    @Override
+                    public void onFailure(retrofit2.Call<Void> call, Throwable t) {
+                        progressDialog.dismiss();
+                        android.widget.Toast.makeText(BookingHistoryActivity.this, "Booking cancelled locally. Will sync when network is available.", android.widget.Toast.LENGTH_LONG).show();
+                    }
+                });
+            });
+        }).start();
+    }
+    
+    private void openBookingDetails(com.evcharging.mobile.models.Booking booking) {
+        android.content.Intent intent = new android.content.Intent(this, com.evcharging.mobile.activities.BookingConfirmationActivity.class);
+        intent.putExtra("booking_id", booking.getId());
+        startActivity(intent);
     }
 
     private void loadAllBookings() {
