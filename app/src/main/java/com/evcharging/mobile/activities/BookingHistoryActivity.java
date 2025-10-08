@@ -143,6 +143,7 @@ public class BookingHistoryActivity extends AppCompatActivity {
         // Set up booking adapter listeners
         bookingAdapter.setOnCancelClickListener(this::cancelBooking);
         bookingAdapter.setOnBookingClickListener(this::openBookingDetails);
+        bookingAdapter.setOnQRClickListener(this::showQRCode);
     }
     
     private void cancelBooking(com.evcharging.mobile.models.Booking booking) {
@@ -197,6 +198,16 @@ public class BookingHistoryActivity extends AppCompatActivity {
         android.content.Intent intent = new android.content.Intent(this, com.evcharging.mobile.activities.BookingConfirmationActivity.class);
         intent.putExtra("booking_id", booking.getId());
         startActivity(intent);
+    }
+    
+    private void showQRCode(com.evcharging.mobile.models.Booking booking) {
+        if ("Approved".equals(booking.getStatus())) {
+            android.content.Intent intent = new android.content.Intent(this, com.evcharging.mobile.activities.QRDisplayActivity.class);
+            intent.putExtra("booking", booking);
+            startActivity(intent);
+        } else {
+            android.widget.Toast.makeText(this, "QR Code available only for approved bookings", android.widget.Toast.LENGTH_SHORT).show();
+        }
     }
 
     private void loadAllBookings() {

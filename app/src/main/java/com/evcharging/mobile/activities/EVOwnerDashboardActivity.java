@@ -278,12 +278,8 @@ public class EVOwnerDashboardActivity extends AppCompatActivity {
     }
 
     private void showQRCode(Booking booking) {
-        // In a real app, you would generate/show QR code
-        Toast.makeText(this, "QR Code for booking: " + booking.getBookingReference(), Toast.LENGTH_LONG).show();
-
-        // For demo, you can start QR display activity
-        // Intent intent = new Intent(this, QRDisplayActivity.class);
-        // intent.putExtra("booking_data", booking.getQrCodeData());
-        // startActivity(intent);
+        Intent intent = new Intent(this, QRDisplayActivity.class);
+        intent.putExtra("booking", booking);
+        startActivity(intent);
     }
 }

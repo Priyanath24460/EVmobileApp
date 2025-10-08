@@ -55,6 +55,9 @@ public interface ApiService {
     @GET("api/Bookings")
     Call<List<Booking>> getAllBookings();
 
+    @GET("api/Bookings/{id}")
+    Call<Booking> getBookingById(@Path("id") String id);
+
     @GET("api/Bookings/upcoming/{nic}")
     Call<List<Booking>> getUpcomingBookings(@Path("nic") String nic);
 

@@ -46,6 +46,9 @@ public interface BookingDao {
     @Query("UPDATE bookings SET status = :status WHERE id = :id")
     void updateStatus(String id, String status);
 
+    @Query("DELETE FROM bookings WHERE evOwnerNIC = :nic")
+    void deleteAllBookingsForUser(String nic);
+
     // Room doesn't have a native upsert prior to newer versions; implement simple upsert
     default void upsert(com.evcharging.mobile.models.Booking booking) {
         Booking existing = getBookingById(booking.getId());

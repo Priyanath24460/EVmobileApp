@@ -17,7 +17,6 @@ import com.evcharging.mobile.database.AppDatabase;
 import com.evcharging.mobile.database.BookingDao;
 import com.evcharging.mobile.models.Booking;
 import com.evcharging.mobile.utils.QRCodeGenerator;
-import com.evcharging.mobile.utils.DateUtils;
 
 import java.text.SimpleDateFormat;
 import java.util.Locale;
@@ -77,19 +76,43 @@ public class BookingConfirmationActivity extends AppCompatActivity {
     private void loadBookingDetails() {
         String bookingId = getIntent().getStringExtra("booking_id");
         if (bookingId != null) {
-            new Thread(() -> {
-                currentBooking = bookingDao.getBookingById(bookingId);
-                runOnUiThread(() -> {
-                    if (currentBooking != null) {
+            Call<Booking> call = apiService.getBookingById(bookingId);
+            call.enqueue(new Callback<Booking>() {
+                @Override
+                public void onResponse(Call<Booking> call, Response<Booking> response) {
+                    if (response.isSuccessful() && response.body() != null) {
+                        currentBooking = response.body();
+                        new Thread(() -> bookingDao.upsert(currentBooking)).start();
                         displayBookingDetails();
                         updateButtonStates();
                     } else {
-                        Toast.makeText(this, "Booking not found", Toast.LENGTH_SHORT).show();
+                        Toast.makeText(BookingConfirmationActivity.this, "Booking not found on server", Toast.LENGTH_SHORT).show();
                         finish();
                     }
-                });
-            }).start();
+                }
+
+                @Override
+                public void onFailure(Call<Booking> call, Throwable t) {
+                    loadBookingFromLocal(bookingId);
+                }
+            });
         }
+    }
+    
+    private void loadBookingFromLocal(String bookingId) {
+        new Thread(() -> {
+            currentBooking = bookingDao.getBookingById(bookingId);
+            runOnUiThread(() -> {
+                if (currentBooking != null) {
+                    Toast.makeText(this, "Showing offline data", Toast.LENGTH_SHORT).show();
+                    displayBookingDetails();
+                    updateButtonStates();
+                } else {
+                    Toast.makeText(this, "Booking not found", Toast.LENGTH_SHORT).show();
+                    finish();
+                }
+            });
+        }).start();
     }
 
     private void displayBookingDetails() {
@@ -102,7 +125,6 @@ public class BookingConfirmationActivity extends AppCompatActivity {
         tvDuration.setText("Duration: " + currentBooking.getDurationMinutes() + " minutes");
         tvStatus.setText("Status: " + currentBooking.getStatus());
 
-        // Show QR code if available
         if (currentBooking.getQrCodeData() != null && !currentBooking.getQrCodeData().isEmpty()) {
             displayQRCode(currentBooking.getQrCodeData());
             btnGenerateQR.setText("Regenerate QR Code");
@@ -112,7 +134,6 @@ public class BookingConfirmationActivity extends AppCompatActivity {
     private void updateButtonStates() {
         String status = currentBooking.getStatus();
         
-        // Enable/disable buttons based on booking status and timing
         btnModifyBooking.setEnabled("Pending".equals(status) && currentBooking.canBeCancelled());
         btnCancelBooking.setEnabled(("Pending".equals(status) || "Approved".equals(status)) && 
                                   currentBooking.canBeCancelled());
@@ -121,19 +142,19 @@ public class BookingConfirmationActivity extends AppCompatActivity {
 
     private void generateQRCode() {
         if ("Approved".equals(currentBooking.getStatus())) {
-            // Generate QR code locally
-            String qrData = QRCodeGenerator.generateBookingQRData(
-                currentBooking.getId(), 
-                currentBooking.getEvOwnerNIC(), 
-                currentBooking.getChargingStationId()
-            );
+            if (currentBooking.getQrCodeData() == null || currentBooking.getQrCodeData().isEmpty()) {
+                String qrData = QRCodeGenerator.generateBookingQRData(
+                    currentBooking.getId(), 
+                    currentBooking.getEvOwnerNIC(), 
+                    currentBooking.getChargingStationId()
+                );
+                currentBooking.setQrCodeData(qrData);
+                new Thread(() -> bookingDao.update(currentBooking)).start();
+            }
             
-            // Update booking with QR data
-            currentBooking.setQrCodeData(qrData);
-            new Thread(() -> {
-                bookingDao.update(currentBooking);
-                runOnUiThread(() -> displayQRCode(qrData));
-            }).start();
+            Intent intent = new Intent(this, QRDisplayActivity.class);
+            intent.putExtra("booking", currentBooking);
+            startActivity(intent);
         } else {
             Toast.makeText(this, "QR Code can only be generated for approved bookings", 
                          Toast.LENGTH_SHORT).show();
@@ -164,32 +185,35 @@ public class BookingConfirmationActivity extends AppCompatActivity {
     }
 
     private void performCancellation() {
-        // Update local database
+        android.app.ProgressDialog progressDialog = new android.app.ProgressDialog(this);
+        progressDialog.setMessage("Cancelling booking...");
+        progressDialog.setCancelable(false);
+        progressDialog.show();
+        
         new Thread(() -> {
             currentBooking.setStatus("Cancelled");
             bookingDao.update(currentBooking);
             
-            // Sync with server
             runOnUiThread(() -> {
+                displayBookingDetails();
+                updateButtonStates();
+                
                 Call<Void> call = apiService.cancelBooking(currentBooking.getId());
                 call.enqueue(new Callback<Void>() {
                     @Override
                     public void onResponse(Call<Void> call, Response<Void> response) {
+                        progressDialog.dismiss();
                         if (response.isSuccessful()) {
-                            Toast.makeText(BookingConfirmationActivity.this, 
-                                         "Booking cancelled successfully", Toast.LENGTH_SHORT).show();
-                            displayBookingDetails();
-                            updateButtonStates();
+                            Toast.makeText(BookingConfirmationActivity.this, "Booking cancelled successfully", Toast.LENGTH_SHORT).show();
                         } else {
-                            Toast.makeText(BookingConfirmationActivity.this, 
-                                         "Failed to cancel booking on server", Toast.LENGTH_SHORT).show();
+                            Toast.makeText(BookingConfirmationActivity.this, "Booking cancelled locally but failed to sync with server", Toast.LENGTH_LONG).show();
                         }
                     }
 
                     @Override
                     public void onFailure(Call<Void> call, Throwable t) {
-                        Toast.makeText(BookingConfirmationActivity.this, 
-                                     "Network error while cancelling", Toast.LENGTH_SHORT).show();
+                        progressDialog.dismiss();
+                        Toast.makeText(BookingConfirmationActivity.this, "Booking cancelled locally. Will sync when network is available.", Toast.LENGTH_LONG).show();
                     }
                 });
             });
