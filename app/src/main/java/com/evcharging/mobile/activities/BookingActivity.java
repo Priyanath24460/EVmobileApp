@@ -213,12 +213,17 @@ public class BookingActivity extends AppCompatActivity {
 
     private void updateSummary() {
         if (selectedStation != null && selectedDateTime != null) {
+            String locationText = "N/A";
+            if (selectedStation.getLocation() != null && selectedStation.getLocation().getFullAddress() != null) {
+                locationText = selectedStation.getLocation().getFullAddress();
+            }
+            
             String summary = "Booking Summary:\n\n" +
                     "Station: " + selectedStation.getName() + "\n" +
                     "Type: " + selectedStation.getStationType() + "\n" +
                     "Date & Time: " + DateUtils.formatDateTime(selectedDateTime) + "\n" +
                     "Duration: " + selectedDuration + " minutes\n" +
-                    "Location: " + selectedStation.getLocation().getFullAddress();
+                    "Location: " + locationText;
 
             tvSummary.setText(summary);
         }
@@ -266,47 +271,48 @@ public class BookingActivity extends AppCompatActivity {
 
     private void processBooking() {
         Booking booking = new Booking();
+        // Generate proper ID first
+        booking.setId("LOCAL_" + System.currentTimeMillis());
         booking.setEvOwnerNIC(prefs.getLoggedInUserNIC());
         booking.setChargingStationId(selectedStation.getId());
-        // Create a slotId for this reservation (server expects a slotId)
         booking.setSlotId("slot-" + selectedStation.getId() + "-" + selectedDateTime.getTime());
         booking.setReservationDateTime(selectedDateTime);
         booking.setDurationMinutes(selectedDuration);
         booking.setStatus("Pending");
         booking.setBookingDate(new Date());
 
-        // Store station details locally
+        // Store station details locally with null checks
         booking.setStationName(selectedStation.getName());
-        booking.setStationAddress(selectedStation.getLocation().getAddress());
+        String stationAddress = "N/A";
+        if (selectedStation.getLocation() != null && selectedStation.getLocation().getAddress() != null) {
+            stationAddress = selectedStation.getLocation().getAddress();
+        }
+        booking.setStationAddress(stationAddress);
 
-        // QR code will be generated when booking is approved
         booking.setQrCodeData("");
-
-        // Save booking
         saveBooking(booking);
     }
 
     private void saveBooking(Booking booking) {
         new Thread(() -> {
-            // Generate a local ID
-            booking.setId("LOCAL_" + System.currentTimeMillis());
-            booking.setBookingReference("EVB" + System.currentTimeMillis());
+            try {
+                booking.setBookingReference("EVB" + System.currentTimeMillis());
+                bookingDao.upsert(booking);
 
-            // Save to local database
-            bookingDao.insert(booking);
+                runOnUiThread(() -> {
+                    Toast.makeText(this, "Booking created successfully!", Toast.LENGTH_SHORT).show();
+                    syncBookingWithApi(booking);
 
-            runOnUiThread(() -> {
-                Toast.makeText(this, "Booking created successfully!", Toast.LENGTH_SHORT).show();
-
-                // Try to sync with API if network available
-                syncBookingWithApi(booking);
-
-                // Navigate to confirmation activity
-                Intent intent = new Intent(BookingActivity.this, BookingConfirmationActivity.class);
-                intent.putExtra("booking_id", booking.getId());
-                startActivity(intent);
-                finish();
-            });
+                    Intent intent = new Intent(BookingActivity.this, BookingConfirmationActivity.class);
+                    intent.putExtra("booking_id", booking.getId());
+                    startActivity(intent);
+                    finish();
+                });
+            } catch (Exception e) {
+                runOnUiThread(() -> {
+                    Toast.makeText(this, "Failed to save booking: " + e.getMessage(), Toast.LENGTH_LONG).show();
+                });
+            }
         }).start();
     }
 
@@ -343,11 +349,21 @@ public class BookingActivity extends AppCompatActivity {
                     if (serverBooking != null) {
                         // Update local booking with server data
                         new Thread(() -> {
-                            booking.setId(serverBooking.getId());
-                            booking.setBookingReference(serverBooking.getBookingReference());
-                            booking.setStatus(serverBooking.getStatus());
-                            booking.setQrCodeData(serverBooking.getQrCodeData());
-                            bookingDao.update(booking);
+                            try {
+                                booking.setId(serverBooking.getId());
+                                if (serverBooking.getBookingReference() != null) {
+                                    booking.setBookingReference(serverBooking.getBookingReference());
+                                }
+                                if (serverBooking.getStatus() != null) {
+                                    booking.setStatus(serverBooking.getStatus());
+                                }
+                                if (serverBooking.getQrCodeData() != null) {
+                                    booking.setQrCodeData(serverBooking.getQrCodeData());
+                                }
+                                bookingDao.update(booking);
+                            } catch (Exception e) {
+                                android.util.Log.e("BOOKING", "Error updating booking: " + e.getMessage());
+                            }
                         }).start();
                     }
                 } else {

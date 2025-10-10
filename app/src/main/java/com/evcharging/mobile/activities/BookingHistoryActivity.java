@@ -162,13 +162,12 @@ public class BookingHistoryActivity extends AppCompatActivity {
         progressDialog.setCancelable(false);
         progressDialog.show();
         
-        // Update local database first
+        // Delete from local database first
         new Thread(() -> {
-            booking.setStatus("Cancelled");
-            bookingDao.update(booking);
+            bookingDao.deleteById(booking.getId());
             
             runOnUiThread(() -> {
-                // Sync with server
+                // Delete from server
                 com.evcharging.mobile.api.ApiService apiService = com.evcharging.mobile.api.ApiClient.getClient(this).create(com.evcharging.mobile.api.ApiService.class);
                 retrofit2.Call<Void> call = apiService.cancelBooking(booking.getId());
                 call.enqueue(new retrofit2.Callback<Void>() {
@@ -177,17 +176,17 @@ public class BookingHistoryActivity extends AppCompatActivity {
                         progressDialog.dismiss();
                         if (response.isSuccessful()) {
                             android.widget.Toast.makeText(BookingHistoryActivity.this, "Booking cancelled successfully", android.widget.Toast.LENGTH_SHORT).show();
-                            // Refresh the list
-                            syncBookingsFromServer();
                         } else {
-                            android.widget.Toast.makeText(BookingHistoryActivity.this, "Booking cancelled locally but failed to sync with server", android.widget.Toast.LENGTH_LONG).show();
+                            android.widget.Toast.makeText(BookingHistoryActivity.this, "Booking cancelled locally", android.widget.Toast.LENGTH_SHORT).show();
                         }
+                        syncBookingsFromServer();
                     }
                     
                     @Override
                     public void onFailure(retrofit2.Call<Void> call, Throwable t) {
                         progressDialog.dismiss();
-                        android.widget.Toast.makeText(BookingHistoryActivity.this, "Booking cancelled locally. Will sync when network is available.", android.widget.Toast.LENGTH_LONG).show();
+                        android.widget.Toast.makeText(BookingHistoryActivity.this, "Booking cancelled locally. Will sync when online.", android.widget.Toast.LENGTH_SHORT).show();
+                        syncBookingsFromServer();
                     }
                 });
             });
