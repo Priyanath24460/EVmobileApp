@@ -1,0 +1,427 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>EV Charging Stations Map</title>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    
+    <!-- Leaflet CSS -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" 
+          integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="" />
+    
+    <!-- Leaflet Routing Machine CSS -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet-routing-machine@3.2.12/dist/leaflet-routing-machine.css" />
+    
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: Arial, sans-serif;
+        }
+        #map {
+            height: 100vh;
+            width: 100%;
+        }
+        
+        .location-btn, .route-btn {
+            position: absolute;
+            z-index: 1000;
+            background: white;
+            border: 2px solid #ccc;
+            border-radius: 5px;
+            padding: 8px 12px;
+            cursor: pointer;
+            font-size: 12px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+        }
+        .location-btn {
+            top: 10px;
+            right: 10px;
+        }
+        .route-btn {
+            top: 60px;
+            right: 10px;
+            background: #e74c3c;
+            color: white;
+            border-color: #c0392b;
+            display: none;
+        }
+        .route-btn:hover {
+            background: #c0392b;
+        }
+        .custom-popup {
+            font-size: 14px;
+        }
+        .station-title {
+            font-weight: bold;
+            color: #2c5aa0;
+            margin-bottom: 5px;
+        }
+        .station-info {
+            color: #555;
+            line-height: 1.4;
+        }
+        .dc-station {
+            color: #1e40af;
+        }
+        .ac-station {
+            color: #059669;
+        }
+    </style>
+</head>
+<body>
+    <button class="location-btn" onclick="requestLocation()" style="top: 10px; right: 10px;">📍 My Location</button>
+    <button class="location-btn" onclick="debugInfo()" style="top: 50px; right: 10px;">🐛 Debug</button>
+    <button class="route-btn" id="clearRouteBtn" onclick="clearRoute()" style="display: none;">🚫 Clear Route</button>
+    <div id="map"></div>
+
+    <!-- Leaflet JavaScript -->
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" 
+            integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+    
+    <!-- Leaflet Routing Machine JavaScript -->
+    <script src="https://unpkg.com/leaflet-routing-machine@3.2.12/dist/leaflet-routing-machine.js"></script>
+
+    <script>
+        // Initialize the map
+        var map = L.map('map').setView([6.9271, 79.8612], 12);
+        
+        // Global variables for routing
+        var routingControl = null;
+        var userLocation = null;
+
+        // Add OpenStreetMap tiles
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            maxZoom: 19,
+            attribution: '© OpenStreetMap contributors'
+        }).addTo(map);
+
+        // Custom icons for different station types
+        var dcIcon = L.icon({
+            iconUrl: 'data:image/svg+xml;charset=UTF-8,' + encodeURIComponent(`
+                <svg xmlns="http://www.w3.org/2000/svg" width="25" height="41" viewBox="0 0 25 41">
+                    <path d="M12.5,0C5.596,0,0,5.596,0,12.5c0,6.904,12.5,28.5,12.5,28.5S25,19.404,25,12.5C25,5.596,19.404,0,12.5,0z" fill="#1e40af"/>
+                    <circle cx="12.5" cy="12.5" r="8" fill="white"/>
+                    <text x="12.5" y="17" text-anchor="middle" fill="#1e40af" font-size="10" font-weight="bold">DC</text>
+                </svg>
+            `),
+            iconSize: [25, 41],
+            iconAnchor: [12, 41],
+            popupAnchor: [1, -34]
+        });
+
+        var acIcon = L.icon({
+            iconUrl: 'data:image/svg+xml;charset=UTF-8,' + encodeURIComponent(`
+                <svg xmlns="http://www.w3.org/2000/svg" width="25" height="41" viewBox="0 0 25 41">
+                    <path d="M12.5,0C5.596,0,0,5.596,0,12.5c0,6.904,12.5,28.5,12.5,28.5S25,19.404,25,12.5C25,5.596,19.404,0,12.5,0z" fill="#059669"/>
+                    <circle cx="12.5" cy="12.5" r="8" fill="white"/>
+                    <text x="12.5" y="17" text-anchor="middle" fill="#059669" font-size="10" font-weight="bold">AC</text>
+                </svg>
+            `),
+            iconSize: [25, 41],
+            iconAnchor: [12, 41],
+            popupAnchor: [1, -34]
+        });
+
+        // Initialize map with default view (Sri Lanka)
+        map.setView([7.8731, 80.7718], 8);
+
+        // JavaScript interface for Android
+        // The Android interface is injected as 'Android', so we use that directly
+        console.log('Checking for Android interface...');
+        console.log('window.Android available:', typeof window.Android !== 'undefined');
+        
+        // Use the injected Android interface or create a fallback
+        if (typeof window.Android !== 'undefined') {
+            console.log('Using injected Android interface');
+            window.AndroidInterface = window.Android;
+        } else {
+            console.log('Creating fallback AndroidInterface');
+            window.AndroidInterface = {};
+        }
+        
+        // Extend AndroidInterface with our custom methods
+        window.AndroidInterface.loadStations = window.AndroidInterface.loadStations || function(stationsJson) {
+                try {
+                    console.log('Loading stations data:', stationsJson);
+                    var newStations = JSON.parse(stationsJson);
+                    console.log('Parsed ' + newStations.length + ' stations');
+                    
+                    // Clear existing station markers (keep only tile layer and user location)
+                    map.eachLayer(function(layer) {
+                        if (layer instanceof L.Marker && layer !== window.userLocationMarker) {
+                            map.removeLayer(layer);
+                        }
+                    });
+                    
+                    // Add new stations
+                    var addedCount = 0;
+                    newStations.forEach(function(station) {
+                        console.log('Processing station:', station.name);
+                        console.log('  - isActive:', station.isActive);
+                        console.log('  - location:', station.location);
+                        console.log('  - coordinates:', station.location ? station.location.latitude + ', ' + station.location.longitude : 'no location');
+                        
+                        // Check if station is active and has valid location
+                        var isActive = station.isActive === true || station.active === true;
+                        var lat = station.location ? station.location.latitude : null;
+                        var lng = station.location ? station.location.longitude : null;
+                        
+                        console.log('  - Detailed validation for:', station.name);
+                        console.log('    * isActive:', isActive, '(original:', station.isActive, ', active:', station.active, ')');
+                        console.log('    * lat:', lat, '(type:', typeof lat, ')');
+                        console.log('    * lng:', lng, '(type:', typeof lng, ')');
+                        console.log('    * lat !== 0:', lat !== 0);
+                        console.log('    * lng !== 0:', lng !== 0);
+                        
+                        var hasValidLocation = station.location && 
+                                             lat != null && 
+                                             lng != null &&
+                                             lat !== 0 && 
+                                             lng !== 0 &&
+                                             lat >= -90 && lat <= 90 &&
+                                             lng >= -180 && lng <= 180;
+                        
+                        if (isActive && hasValidLocation) {
+                            console.log('  → Adding marker for:', station.name);
+                            var icon = station.stationType === 'DC' ? dcIcon : acIcon;
+                            var marker = L.marker([station.location.latitude, station.location.longitude], {icon: icon}).addTo(map);
+                            
+                            var routeButtonHtml = userLocation ? 
+                                `<div style="margin-top: 10px; text-align: center;">
+                                    <button onclick="showRouteToStation({name: '${station.name}', location: {latitude: ${station.location.latitude}, longitude: ${station.location.longitude}}})" 
+                                            style="background: #2196F3; color: white; border: none; padding: 8px 12px; border-radius: 4px; cursor: pointer; font-size: 12px;">
+                                        🗺️ Show Route
+                                    </button>
+                                </div>` : '';
+                            
+                            var popupContent = `
+                                <div class="custom-popup">
+                                    <div class="station-title">${station.name}</div>
+                                    <div class="station-info">
+                                        <div class="${station.stationType.toLowerCase()}-station"><strong>${station.stationType} Charging Station</strong></div>
+                                        <div>📍 ${station.location.address}, ${station.location.city}</div>
+                                        <div>⚡ ${station.totalSlots} charging slots</div>
+                                        <div>🟢 Currently Active</div>
+                                    </div>
+                                    ${routeButtonHtml}
+                                </div>
+                            `;
+                            
+                            marker.bindPopup(popupContent);
+                            
+                            // Add click handler for routing and Android callback
+                            marker.on('click', function() {
+                                console.log('Station marker clicked:', station.name);
+                                
+                                // Show route if user location is available
+                                if (userLocation) {
+                                    showRouteToStation(station);
+                                } else {
+                                    console.log('User location not available for routing');
+                                }
+                                
+                                // Call Android callback
+                                if (window.Android && window.Android.onMarkerClick) {
+                                    window.Android.onMarkerClick(station.id || station.name);
+                                } else if (window.AndroidInterface && window.AndroidInterface.onMarkerClick) {
+                                    window.AndroidInterface.onMarkerClick(station.id || station.name);
+                                } else {
+                                    console.log('No Android interface available');
+                                }
+                            });
+                            
+                            addedCount++;
+                        } else {
+                            console.log('  → Skipping station:', station.name, 
+                                      'Active:', isActive, 
+                                      'Valid location:', hasValidLocation);
+                        }
+                    });
+                    
+                    // Fit map to new stations
+                    var stationMarkers = [];
+                    map.eachLayer(function(layer) {
+                        if (layer instanceof L.Marker && layer !== window.userLocationMarker) {
+                            stationMarkers.push(layer);
+                        }
+                    });
+                    
+                    if (stationMarkers.length > 0) {
+                        try {
+                            var group = new L.featureGroup(stationMarkers);
+                            var bounds = group.getBounds();
+                            if (bounds && bounds.isValid && bounds.isValid()) {
+                                map.fitBounds(bounds.pad(0.1));
+                                console.log('Map fitted to station bounds');
+                            } else {
+                                console.log('Invalid station bounds, keeping current view');
+                            }
+                        } catch (error) {
+                            console.error('Error fitting bounds to stations:', error);
+                        }
+                    }
+                    
+                    console.log('Successfully loaded ' + addedCount + ' station markers out of ' + newStations.length + ' stations');
+                } catch (e) {
+                    console.error('Error loading stations:', e);
+                    console.error('Raw data was:', stationsJson);
+                }
+        };
+
+        window.AndroidInterface.setUserLocation = window.AndroidInterface.setUserLocation || function(latitude, longitude) {
+                console.log('=== SET USER LOCATION CALLED ===');
+                console.log('Received location:', latitude, longitude);
+                console.log('Map object:', map);
+                console.log('Current map center:', map.getCenter());
+                
+                try {
+                    var userLocationCoords = [parseFloat(latitude), parseFloat(longitude)];
+                    console.log('Parsed location:', userLocationCoords);
+                    
+                    // Store user location globally for routing
+                    userLocation = userLocationCoords;
+                    
+                    // Check if coordinates are valid
+                    if (isNaN(userLocationCoords[0]) || isNaN(userLocationCoords[1])) {
+                        console.error('Invalid coordinates:', userLocationCoords);
+                        return;
+                    }
+                    
+                    // Remove existing user location marker
+                    if (window.userLocationMarker) {
+                        console.log('Removing existing user location marker');
+                        map.removeLayer(window.userLocationMarker);
+                    }
+                    
+                    // Add new user location marker
+                    var userIcon = L.divIcon({
+                        className: 'user-location-icon',
+                        html: '<div style="background-color: #4285f4; border: 3px solid white; border-radius: 50%; width: 20px; height: 20px; box-shadow: 0 2px 4px rgba(0,0,0,0.3);"></div>',
+                        iconSize: [20, 20],
+                        iconAnchor: [10, 10]
+                    });
+                    
+                    console.log('Creating user location marker...');
+                    window.userLocationMarker = L.marker(userLocationCoords, {icon: userIcon}).addTo(map);
+                    window.userLocationMarker.bindPopup('<b>Your Location</b><br>Lat: ' + latitude + '<br>Lng: ' + longitude);
+                    
+                    // Center map on user location with animation
+                    console.log('Centering map on user location...');
+                    map.setView(userLocationCoords, 15, {animate: true, duration: 1});
+                    
+                    // Show popup after a short delay
+                    setTimeout(function() {
+                        if (window.userLocationMarker) {
+                            window.userLocationMarker.openPopup();
+                        }
+                    }, 500);
+                    
+                    console.log('=== USER LOCATION SET SUCCESSFULLY ===');
+                    console.log('Final map center:', map.getCenter());
+                    console.log('Final map zoom:', map.getZoom());
+                    
+                } catch (error) {
+                    console.error('=== ERROR SETTING USER LOCATION ===');
+                    console.error('Error:', error);
+                    console.error('Stack:', error.stack);
+                }
+        };
+
+        window.AndroidInterface.onMapReady = window.AndroidInterface.onMapReady || function() {
+            console.log('Map ready callback received from Android');
+        };
+
+        // Function to request location from button
+        function requestLocation() {
+            console.log('Location button clicked');
+            if (window.Android && window.Android.testLocation) {
+                window.Android.testLocation();
+            } else if (window.AndroidInterface && window.AndroidInterface.testLocation) {
+                window.AndroidInterface.testLocation();
+            } else {
+                console.error('No Android interface available for testLocation');
+            }
+        }
+        
+        // Function to show debug info
+        function debugInfo() {
+            console.log('Debug button clicked');
+            if (window.Android && window.Android.debugInfo) {
+                window.Android.debugInfo();
+            } else if (window.AndroidInterface && window.AndroidInterface.debugInfo) {
+                window.AndroidInterface.debugInfo();
+            } else {
+                console.error('No Android interface available for debugInfo');
+            }
+        }
+
+        // Routing functions
+        function showRouteToStation(station) {
+            console.log('=== SHOWING ROUTE TO STATION ===');
+            console.log('User location:', userLocation);
+            console.log('Station:', station.name, 'at', station.location.latitude, station.location.longitude);
+            
+            if (!userLocation) {
+                console.error('User location not available for routing');
+                return;
+            }
+            
+            // Clear existing route
+            clearRoute();
+            
+            var stationCoords = [station.location.latitude, station.location.longitude];
+            
+            try {
+                // Create routing control
+                routingControl = L.Routing.control({
+                    waypoints: [
+                        L.latLng(userLocation[0], userLocation[1]),
+                        L.latLng(stationCoords[0], stationCoords[1])
+                    ],
+                    routeWhileDragging: false,
+                    addWaypoints: false,
+                    createMarker: function() {
+                        // Don't create markers, we already have them
+                        return null;
+                    },
+                    lineOptions: {
+                        styles: [{
+                            color: '#2196F3',
+                            weight: 6,
+                            opacity: 0.8
+                        }]
+                    },
+                    show: false, // Hide the routing panel
+                    collapsible: false
+                }).addTo(map);
+                
+                // Show clear route button
+                document.getElementById('clearRouteBtn').style.display = 'block';
+                
+                console.log('Route created successfully');
+            } catch (error) {
+                console.error('Error creating route:', error);
+            }
+        }
+        
+        function clearRoute() {
+            console.log('=== CLEARING ROUTE ===');
+            
+            if (routingControl) {
+                map.removeControl(routingControl);
+                routingControl = null;
+                console.log('Route cleared');
+            }
+            
+            // Hide clear route button
+            document.getElementById('clearRouteBtn').style.display = 'none';
+        }
+
+        // Notify Android that map is ready after a short delay
+        setTimeout(function() {
+            console.log('Map initialized and ready');
+        }, 500);
+    </script>
+</body>
+</html>

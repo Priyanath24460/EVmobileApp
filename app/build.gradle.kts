@@ -105,7 +105,7 @@ dependencies {
 
     // Location & Maps
     implementation(libs.play.services.location)
-    implementation(libs.play.services.maps)
+    // Using WebView with Leaflet.js for mapping (no additional dependencies needed)
 
     // Image Loading
     implementation(libs.glide)
