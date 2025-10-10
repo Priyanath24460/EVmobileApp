@@ -8,10 +8,11 @@ import androidx.room.TypeConverters;
 import com.evcharging.mobile.utils.DateConverter;
 import com.google.gson.annotations.SerializedName;
 
+import java.io.Serializable;
 import java.util.Date;
 
 @Entity(tableName = "bookings")
-public class Booking {
+public class Booking implements Serializable {
     @PrimaryKey
     @NonNull
     @SerializedName("id")
@@ -52,7 +53,7 @@ public class Booking {
 
     // Constructors
     public Booking() {
-        this.id = ""; // Initialize with empty string to avoid null
+        // ID will be set when saving to database
     }
 
     public Booking(@NonNull String id, String bookingReference, String evOwnerNIC, String chargingStationId,
