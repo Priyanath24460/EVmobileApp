@@ -35,19 +35,28 @@ public interface ApiService {
     @PUT("api/EVOwners/{nic}/reactivate")
     Call<User> reactivateEVOwner(@Path("nic") String nic, @Body ReactivationRequest request);
 
-    // Charging Stations Endpoints - Check if these exist in your API
-    @GET("api/chargingstations/active")
+    // Charging Stations Endpoints
+    @GET("api/ChargingStations/active")
     Call<List<ChargingStation>> getActiveStations();
 
-    @GET("api/chargingstations/nearby")
+    @GET("api/ChargingStations")
+    Call<List<ChargingStation>> getAllStations();
+
+    @GET("api/ChargingStations/nearby")
     Call<List<ChargingStation>> getNearbyStations(
             @Query("latitude") double latitude,
             @Query("longitude") double longitude,
             @Query("radiusKm") double radiusKm);
 
+    @GET("api/ChargingStations/{id}")
+    Call<ChargingStation> getStationById(@Path("id") String id);
+
     // Bookings Endpoints (server uses capitalized controller name)
     @GET("api/Bookings")
     Call<List<Booking>> getAllBookings();
+
+    @GET("api/Bookings/{id}")
+    Call<Booking> getBookingById(@Path("id") String id);
 
     @GET("api/Bookings/upcoming/{nic}")
     Call<List<Booking>> getUpcomingBookings(@Path("nic") String nic);

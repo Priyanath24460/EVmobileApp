@@ -5,59 +5,50 @@ import android.content.SharedPreferences;
 
 public class SharedPreferencesHelper {
     private static final String PREF_NAME = "EVChargingPrefs";
-    private static final String KEY_LOGGED_IN_USER_NIC = "logged_in_user_nic";
-    private static final String KEY_USER_TYPE = "user_type";
     private static final String KEY_IS_LOGGED_IN = "is_logged_in";
+    private static final String KEY_USER_NIC = "user_nic";
+    private static final String KEY_USER_TYPE = "user_type";
     private static final String KEY_API_BASE_URL = "api_base_url";
 
-    private SharedPreferences preferences;
-    private SharedPreferences.Editor editor;
+    private SharedPreferences prefs;
 
     public SharedPreferencesHelper(Context context) {
-        preferences = context.getSharedPreferences(PREF_NAME, Context.MODE_PRIVATE);
-        editor = preferences.edit();
+        prefs = context.getSharedPreferences(PREF_NAME, Context.MODE_PRIVATE);
     }
 
-    public void setLoggedInUserNIC(String nic) {
-        editor.putString(KEY_LOGGED_IN_USER_NIC, nic);
-        editor.apply();
-    }
-
-    public String getLoggedInUserNIC() {
-        return preferences.getString(KEY_LOGGED_IN_USER_NIC, null);
-    }
-
-    public void setUserType(String userType) {
-        editor.putString(KEY_USER_TYPE, userType);
-        editor.apply();
-    }
-
-    public String getUserType() {
-        return preferences.getString(KEY_USER_TYPE, null);
-    }
-
-    public void setLoggedIn(boolean loggedIn) {
-        editor.putBoolean(KEY_IS_LOGGED_IN, loggedIn);
-        editor.apply();
+    public void setLoggedIn(boolean isLoggedIn) {
+        prefs.edit().putBoolean(KEY_IS_LOGGED_IN, isLoggedIn).apply();
     }
 
     public boolean isLoggedIn() {
-        return preferences.getBoolean(KEY_IS_LOGGED_IN, false);
+        return prefs.getBoolean(KEY_IS_LOGGED_IN, false);
+    }
+
+    public void setLoggedInUserNIC(String nic) {
+        prefs.edit().putString(KEY_USER_NIC, nic).apply();
+    }
+
+    public String getLoggedInUserNIC() {
+        return prefs.getString(KEY_USER_NIC, "");
+    }
+
+    public void setUserType(String userType) {
+        prefs.edit().putString(KEY_USER_TYPE, userType).apply();
+    }
+
+    public String getUserType() {
+        return prefs.getString(KEY_USER_TYPE, "");
     }
 
     public void setApiBaseUrl(String url) {
-        editor.putString(KEY_API_BASE_URL, url);
-        editor.apply();
+        prefs.edit().putString(KEY_API_BASE_URL, url).apply();
     }
 
     public String getApiBaseUrl() {
-        return preferences.getString(KEY_API_BASE_URL, "https://evwebserverapi.onrender.com/");
+        return prefs.getString(KEY_API_BASE_URL, null);
     }
 
     public void clearUserData() {
-        editor.remove(KEY_LOGGED_IN_USER_NIC);
-        editor.remove(KEY_USER_TYPE);
-        editor.remove(KEY_IS_LOGGED_IN);
-        editor.apply();
+        prefs.edit().clear().apply();
     }
 }

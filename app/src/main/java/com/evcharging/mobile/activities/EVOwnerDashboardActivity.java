@@ -44,10 +44,16 @@ public class EVOwnerDashboardActivity extends AppCompatActivity {
         setupDatabase();
         loadUserData();
         setupClickListeners();
-        loadUpcomingBookings();
+        // Clean up any duplicate bookings first
+        new Thread(() -> {
+            bookingDao.cleanupAllDuplicates(currentUserNIC);
+            runOnUiThread(() -> {
+                loadUpcomingBookings();
+                updateBookingCounts();
+            });
+        }).start();
         // Attempt to sync bookings from server on first open
         syncBookingsFromServer();
-        updateBookingCounts();
     }
 
     @Override
@@ -61,44 +67,72 @@ public class EVOwnerDashboardActivity extends AppCompatActivity {
         if (currentUserNIC == null || currentUserNIC.isEmpty()) return;
 
         com.evcharging.mobile.api.ApiService api = com.evcharging.mobile.api.ApiClient.getClient(this).create(com.evcharging.mobile.api.ApiService.class);
-        retrofit2.Call<java.util.List<com.evcharging.mobile.models.Booking>> call = api.getUpcomingBookings(currentUserNIC);
-        call.enqueue(new retrofit2.Callback<java.util.List<com.evcharging.mobile.models.Booking>>() {
+        
+        // Sync upcoming bookings
+        retrofit2.Call<java.util.List<com.evcharging.mobile.models.Booking>> upcomingCall = api.getUpcomingBookings(currentUserNIC);
+        upcomingCall.enqueue(new retrofit2.Callback<java.util.List<com.evcharging.mobile.models.Booking>>() {
             @Override
             public void onResponse(retrofit2.Call<java.util.List<com.evcharging.mobile.models.Booking>> call, retrofit2.Response<java.util.List<com.evcharging.mobile.models.Booking>> response) {
                 if (response.isSuccessful() && response.body() != null) {
                     java.util.List<com.evcharging.mobile.models.Booking> serverBookings = response.body();
-                    // Upsert into local DB
+                    android.util.Log.d("Dashboard", "Server returned " + serverBookings.size() + " upcoming bookings");
                     new Thread(() -> {
                         for (com.evcharging.mobile.models.Booking b : serverBookings) {
-                            // Ensure we don't accidentally overwrite local-only fields like bookingReference if server doesn't provide them
                             try {
+                                android.util.Log.d("Dashboard", "Saving booking: " + b.getId() + " Status: " + b.getStatus());
                                 bookingDao.upsert(b);
+                                // Clean up any duplicates
+                                if (b.getReservationDateTime() != null) {
+                                    bookingDao.deleteDuplicateBookings(currentUserNIC, b.getId(), 
+                                        b.getChargingStationId(), b.getReservationDateTime().getTime());
+                                }
                             } catch (Exception e) {
+                                android.util.Log.e("Dashboard", "Error saving booking: " + e.getMessage());
                                 e.printStackTrace();
                             }
                         }
-                        // After DB update, refresh UI counts and list
                         runOnUiThread(() -> {
                             loadUpcomingBookings();
                             updateBookingCounts();
                         });
                     }).start();
                 } else {
-                    // Non-2xx - ignore gracefully but refresh local UI
-                    runOnUiThread(() -> {
-                        loadUpcomingBookings();
-                        updateBookingCounts();
-                    });
+                    android.util.Log.w("Dashboard", "Server response failed or empty. Code: " + response.code());
                 }
             }
 
             @Override
             public void onFailure(retrofit2.Call<java.util.List<com.evcharging.mobile.models.Booking>> call, Throwable t) {
-                // Network failure - keep local DB and refresh
+                android.util.Log.e("Dashboard", "Failed to sync upcoming bookings: " + t.getMessage());
                 runOnUiThread(() -> {
                     loadUpcomingBookings();
                     updateBookingCounts();
                 });
+            }
+        });
+
+        // Also sync booking history for complete data
+        retrofit2.Call<java.util.List<com.evcharging.mobile.models.Booking>> historyCall = api.getBookingHistory(currentUserNIC);
+        historyCall.enqueue(new retrofit2.Callback<java.util.List<com.evcharging.mobile.models.Booking>>() {
+            @Override
+            public void onResponse(retrofit2.Call<java.util.List<com.evcharging.mobile.models.Booking>> call, retrofit2.Response<java.util.List<com.evcharging.mobile.models.Booking>> response) {
+                if (response.isSuccessful() && response.body() != null) {
+                    java.util.List<com.evcharging.mobile.models.Booking> historyBookings = response.body();
+                    new Thread(() -> {
+                        for (com.evcharging.mobile.models.Booking b : historyBookings) {
+                            try {
+                                bookingDao.upsert(b);
+                            } catch (Exception e) {
+                                e.printStackTrace();
+                            }
+                        }
+                    }).start();
+                }
+            }
+
+            @Override
+            public void onFailure(retrofit2.Call<java.util.List<com.evcharging.mobile.models.Booking>> call, Throwable t) {
+                // Silently fail for history sync
             }
         });
     }
@@ -141,12 +175,15 @@ public class EVOwnerDashboardActivity extends AppCompatActivity {
 
     private void loadUpcomingBookings() {
         new Thread(() -> {
+            // Debug: Check total bookings first
+            List<Booking> allBookings = bookingDao.getBookingsByNIC(currentUserNIC);
+            android.util.Log.d("Dashboard", "Total bookings for user: " + allBookings.size());
+            
             List<Booking> upcomingBookings = bookingDao.getUpcomingBookings(currentUserNIC);
+            android.util.Log.d("Dashboard", "Upcoming bookings found: " + upcomingBookings.size());
+            
             runOnUiThread(() -> {
                 bookingAdapter.setBookings(upcomingBookings);
-                if (upcomingBookings.isEmpty()) {
-                    Toast.makeText(this, "No upcoming bookings", Toast.LENGTH_SHORT).show();
-                }
             });
         }).start();
     }
@@ -180,11 +217,12 @@ public class EVOwnerDashboardActivity extends AppCompatActivity {
                 if (response.isSuccessful() && response.body() != null) {
                     tvPendingCount.setText(String.valueOf(response.body()));
                 }
+                // If server fails, keep local count (already displayed)
             }
 
             @Override
             public void onFailure(Call<Integer> call, Throwable t) {
-                // Silently fail - keep local counts
+                // Keep local count (already displayed)
             }
         });
 
@@ -196,11 +234,12 @@ public class EVOwnerDashboardActivity extends AppCompatActivity {
                 if (response.isSuccessful() && response.body() != null) {
                     tvApprovedCount.setText(String.valueOf(response.body()));
                 }
+                // If server fails, keep local count (already displayed)
             }
 
             @Override
             public void onFailure(Call<Integer> call, Throwable t) {
-                // Silently fail - keep local counts
+                // Keep local count (already displayed)
             }
         });
     }
@@ -251,25 +290,40 @@ public class EVOwnerDashboardActivity extends AppCompatActivity {
     }
 
     private void cancelBooking(Booking booking) {
+        // Delete from local database first
         new Thread(() -> {
-            booking.setStatus("Cancelled");
-            bookingDao.update(booking);
-
+            bookingDao.deleteById(booking.getId());
+            
             runOnUiThread(() -> {
-                Toast.makeText(this, "Booking cancelled successfully", Toast.LENGTH_SHORT).show();
-                loadUpcomingBookings();
-                updateBookingCounts();
+                // Delete from server
+                ApiService apiService = ApiClient.getClient(this).create(ApiService.class);
+                retrofit2.Call<Void> call = apiService.cancelBooking(booking.getId());
+                call.enqueue(new retrofit2.Callback<Void>() {
+                    @Override
+                    public void onResponse(retrofit2.Call<Void> call, retrofit2.Response<Void> response) {
+                        if (response.isSuccessful()) {
+                            Toast.makeText(EVOwnerDashboardActivity.this, "Booking cancelled successfully", Toast.LENGTH_SHORT).show();
+                        } else {
+                            Toast.makeText(EVOwnerDashboardActivity.this, "Booking cancelled locally", Toast.LENGTH_SHORT).show();
+                        }
+                        loadUpcomingBookings();
+                        updateBookingCounts();
+                    }
+                    
+                    @Override
+                    public void onFailure(retrofit2.Call<Void> call, Throwable t) {
+                        Toast.makeText(EVOwnerDashboardActivity.this, "Booking cancelled locally. Will sync when online.", Toast.LENGTH_SHORT).show();
+                        loadUpcomingBookings();
+                        updateBookingCounts();
+                    }
+                });
             });
         }).start();
     }
 
     private void showQRCode(Booking booking) {
-        // In a real app, you would generate/show QR code
-        Toast.makeText(this, "QR Code for booking: " + booking.getBookingReference(), Toast.LENGTH_LONG).show();
-
-        // For demo, you can start QR display activity
-        // Intent intent = new Intent(this, QRDisplayActivity.class);
-        // intent.putExtra("booking_data", booking.getQrCodeData());
-        // startActivity(intent);
+        Intent intent = new Intent(this, QRDisplayActivity.class);
+        intent.putExtra("booking", booking);
+        startActivity(intent);
     }
 }

@@ -1,72 +1,65 @@
 package com.evcharging.mobile.utils;
 
 import android.graphics.Bitmap;
+import android.graphics.Color;
 import com.google.zxing.BarcodeFormat;
-import com.google.zxing.MultiFormatWriter;
 import com.google.zxing.WriterException;
 import com.google.zxing.common.BitMatrix;
-import com.journeyapps.barcodescanner.BarcodeEncoder;
+import com.google.zxing.qrcode.QRCodeWriter;
 
 public class QRCodeGenerator {
 
+    public static String generateBookingQRData(String bookingId, String customerNIC, String stationId) {
+        // Handle null values
+        bookingId = bookingId != null ? bookingId : "";
+        customerNIC = customerNIC != null ? customerNIC : "";
+        stationId = stationId != null ? stationId : "";
+        
+        return "EVCHARGE:" + bookingId + ":" + customerNIC + ":" + stationId;
+    }
+
     public static Bitmap generateQRCode(String data, int width, int height) {
-        MultiFormatWriter multiFormatWriter = new MultiFormatWriter();
         try {
-            BitMatrix bitMatrix = multiFormatWriter.encode(data, BarcodeFormat.QR_CODE, width, height);
-            BarcodeEncoder barcodeEncoder = new BarcodeEncoder();
-            return barcodeEncoder.createBitmap(bitMatrix);
+            QRCodeWriter writer = new QRCodeWriter();
+            BitMatrix bitMatrix = writer.encode(data, BarcodeFormat.QR_CODE, width, height);
+            
+            Bitmap bitmap = Bitmap.createBitmap(width, height, Bitmap.Config.RGB_565);
+            for (int x = 0; x < width; x++) {
+                for (int y = 0; y < height; y++) {
+                    bitmap.setPixel(x, y, bitMatrix.get(x, y) ? Color.BLACK : Color.WHITE);
+                }
+            }
+            return bitmap;
         } catch (WriterException e) {
-            e.printStackTrace();
             return null;
         }
     }
 
-    public static String generateBookingQRData(String bookingId, String nic, String stationId) {
-        return "EVBOOKING:" + bookingId + ":" + nic + ":" + stationId;
-    }
-
-    public static String parseBookingIdFromQR(String qrData) {
-        if (qrData.startsWith("EVBOOKING:")) {
-            String[] parts = qrData.split(":");
-            return parts.length > 1 ? parts[1] : null;
-        }
-        return null;
-    }
-
-    public static BookingQRData parseQRData(String qrData) {
-        if (qrData == null) {
+    public static BookingQRData parseQRData(String qrContent) {
+        if (qrContent == null || !qrContent.startsWith("EVCHARGE:")) {
             return null;
         }
         
-        // Handle both old format "EVBOOKING:" and new format "EVCHARGE:"
-        String[] parts;
-        if (qrData.startsWith("EVBOOKING:")) {
-            parts = qrData.split(":");
-            if (parts.length >= 4) {
-                return new BookingQRData(parts[1], parts[2], parts[3]);
-            }
-        } else if (qrData.startsWith("EVCHARGE:")) {
-            parts = qrData.split(":");
-            if (parts.length >= 4) {
-                return new BookingQRData(parts[1], parts[2], parts[3]);
-            }
+        String[] parts = qrContent.split(":");
+        if (parts.length >= 4) {
+            return new BookingQRData(parts[1], parts[2], parts[3]);
         }
         return null;
     }
 
     public static class BookingQRData {
         private String bookingId;
-        private String evOwnerNIC;
+        private String customerNIC;
         private String stationId;
-        
-        public BookingQRData(String bookingId, String evOwnerNIC, String stationId) {
+
+        public BookingQRData(String bookingId, String customerNIC, String stationId) {
             this.bookingId = bookingId;
-            this.evOwnerNIC = evOwnerNIC;
+            this.customerNIC = customerNIC;
             this.stationId = stationId;
         }
-        
+
         public String getBookingId() { return bookingId; }
-        public String getEvOwnerNIC() { return evOwnerNIC; }
+        public String getCustomerNIC() { return customerNIC; }
         public String getStationId() { return stationId; }
     }
 }

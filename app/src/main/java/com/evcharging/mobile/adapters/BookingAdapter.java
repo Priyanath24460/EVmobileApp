@@ -99,8 +99,8 @@ public class BookingAdapter extends RecyclerView.Adapter<BookingAdapter.BookingV
             tvDateTime.setText(DateUtils.formatDateTime(booking.getReservationDateTime()));
             tvStatus.setText(booking.getStatus());
 
-            // Set station name if available
-            if (booking.getStationName() != null) {
+            // Set station name consistently
+            if (booking.getStationName() != null && !booking.getStationName().trim().isEmpty()) {
                 tvStation.setText(booking.getStationName());
             } else {
                 tvStation.setText("Station: " + booking.getChargingStationId());

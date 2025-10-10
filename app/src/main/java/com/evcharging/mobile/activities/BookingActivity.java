@@ -21,12 +21,14 @@ import com.evcharging.mobile.models.ChargingStation;
 import com.evcharging.mobile.utils.DateUtils;
 import com.evcharging.mobile.utils.SharedPreferencesHelper;
 import com.google.android.material.textfield.TextInputEditText;
+import android.view.View;
 
 import retrofit2.Call;
 import retrofit2.Callback;
 import retrofit2.Response;
 import java.util.Calendar;
 import java.util.Date;
+import java.util.List;
 
 public class BookingActivity extends AppCompatActivity {
 
@@ -90,19 +92,69 @@ public class BookingActivity extends AppCompatActivity {
     }
 
     private void showStationSelection() {
-        // In a real app, you would show a list/dialog of available stations
-        // For demo, we'll use a hardcoded station
-        selectedStation = new ChargingStation(
-                "1",
-                "Colombo City Center Station",
-                "DC",
-                4,
-                true,
-                new ChargingStation.Location("123 Galle Road", "Colombo", 6.9271, 79.8612)
-        );
+        // Show loading indicator
+        android.app.ProgressDialog progressDialog = new android.app.ProgressDialog(this);
+        progressDialog.setMessage("Loading charging stations...");
+        progressDialog.setCancelable(false);
+        progressDialog.show();
 
-        etStation.setText(selectedStation.getName());
-        updateSummary();
+        // Fetch active charging stations from API
+        Call<java.util.List<ChargingStation>> call = apiService.getActiveStations();
+        call.enqueue(new Callback<java.util.List<ChargingStation>>() {
+            @Override
+            public void onResponse(@NonNull Call<java.util.List<ChargingStation>> call, @NonNull Response<java.util.List<ChargingStation>> response) {
+                progressDialog.dismiss();
+                if (response.isSuccessful() && response.body() != null) {
+                    java.util.List<ChargingStation> stations = response.body();
+                    if (!stations.isEmpty()) {
+                        showStationSelectionDialog(stations);
+                    } else {
+                        Toast.makeText(BookingActivity.this, "No active charging stations available", Toast.LENGTH_SHORT).show();
+                    }
+                } else {
+                    Toast.makeText(BookingActivity.this, "Failed to load charging stations", Toast.LENGTH_SHORT).show();
+                }
+            }
+
+            @Override
+            public void onFailure(@NonNull Call<java.util.List<ChargingStation>> call, @NonNull Throwable t) {
+                progressDialog.dismiss();
+                // Show error and offer to try again
+                new androidx.appcompat.app.AlertDialog.Builder(BookingActivity.this)
+                        .setTitle("Network Error")
+                        .setMessage("Failed to load charging stations. Please check your internet connection and try again.")
+                        .setPositiveButton("Retry", (dialog, which) -> showStationSelection())
+                        .setNegativeButton("Cancel", null)
+                        .show();
+            }
+        });
+    }
+
+    private void showStationSelectionDialog(java.util.List<ChargingStation> stations) {
+        android.app.AlertDialog.Builder builder = new android.app.AlertDialog.Builder(this);
+        View dialogView = getLayoutInflater().inflate(R.layout.dialog_station_selection, null);
+        
+        androidx.recyclerview.widget.RecyclerView rvStations = dialogView.findViewById(R.id.rvStations);
+        android.widget.Button btnCancel = dialogView.findViewById(R.id.btnCancel);
+        
+        rvStations.setLayoutManager(new androidx.recyclerview.widget.LinearLayoutManager(this));
+        
+        com.evcharging.mobile.adapters.ChargingStationAdapter adapter = new com.evcharging.mobile.adapters.ChargingStationAdapter(this);
+        adapter.setStations(stations);
+        rvStations.setAdapter(adapter);
+        
+        android.app.AlertDialog dialog = builder.setView(dialogView).create();
+        
+        adapter.setOnStationClickListener(station -> {
+            selectedStation = station;
+            etStation.setText(selectedStation.getName());
+            updateSummary();
+            dialog.dismiss();
+        });
+        
+        btnCancel.setOnClickListener(v -> dialog.dismiss());
+        
+        dialog.show();
     }
 
     private void showDateTimePicker() {
@@ -161,12 +213,17 @@ public class BookingActivity extends AppCompatActivity {
 
     private void updateSummary() {
         if (selectedStation != null && selectedDateTime != null) {
+            String locationText = "N/A";
+            if (selectedStation.getLocation() != null && selectedStation.getLocation().getFullAddress() != null) {
+                locationText = selectedStation.getLocation().getFullAddress();
+            }
+            
             String summary = "Booking Summary:\n\n" +
                     "Station: " + selectedStation.getName() + "\n" +
                     "Type: " + selectedStation.getStationType() + "\n" +
                     "Date & Time: " + DateUtils.formatDateTime(selectedDateTime) + "\n" +
                     "Duration: " + selectedDuration + " minutes\n" +
-                    "Location: " + selectedStation.getLocation().getFullAddress();
+                    "Location: " + locationText;
 
             tvSummary.setText(summary);
         }
@@ -214,47 +271,48 @@ public class BookingActivity extends AppCompatActivity {
 
     private void processBooking() {
         Booking booking = new Booking();
+        // Generate proper ID first
+        booking.setId("LOCAL_" + System.currentTimeMillis());
         booking.setEvOwnerNIC(prefs.getLoggedInUserNIC());
         booking.setChargingStationId(selectedStation.getId());
-        // Create a slotId for this reservation (server expects a slotId)
         booking.setSlotId("slot-" + selectedStation.getId() + "-" + selectedDateTime.getTime());
         booking.setReservationDateTime(selectedDateTime);
         booking.setDurationMinutes(selectedDuration);
         booking.setStatus("Pending");
         booking.setBookingDate(new Date());
 
-        // Store station details locally
+        // Store station details locally with null checks
         booking.setStationName(selectedStation.getName());
-        booking.setStationAddress(selectedStation.getLocation().getAddress());
+        String stationAddress = "N/A";
+        if (selectedStation.getLocation() != null && selectedStation.getLocation().getAddress() != null) {
+            stationAddress = selectedStation.getLocation().getAddress();
+        }
+        booking.setStationAddress(stationAddress);
 
-        // QR code will be generated when booking is approved
         booking.setQrCodeData("");
-
-        // Save booking
         saveBooking(booking);
     }
 
     private void saveBooking(Booking booking) {
         new Thread(() -> {
-            // Generate a local ID
-            booking.setId("LOCAL_" + System.currentTimeMillis());
-            booking.setBookingReference("EVB" + System.currentTimeMillis());
+            try {
+                booking.setBookingReference("EVB" + System.currentTimeMillis());
+                bookingDao.upsert(booking);
 
-            // Save to local database
-            bookingDao.insert(booking);
+                runOnUiThread(() -> {
+                    Toast.makeText(this, "Booking created successfully!", Toast.LENGTH_SHORT).show();
+                    syncBookingWithApi(booking);
 
-            runOnUiThread(() -> {
-                Toast.makeText(this, "Booking created successfully!", Toast.LENGTH_SHORT).show();
-
-                // Try to sync with API if network available
-                syncBookingWithApi(booking);
-
-                // Navigate to confirmation activity
-                Intent intent = new Intent(BookingActivity.this, BookingConfirmationActivity.class);
-                intent.putExtra("booking_id", booking.getId());
-                startActivity(intent);
-                finish();
-            });
+                    Intent intent = new Intent(BookingActivity.this, BookingConfirmationActivity.class);
+                    intent.putExtra("booking_id", booking.getId());
+                    startActivity(intent);
+                    finish();
+                });
+            } catch (Exception e) {
+                runOnUiThread(() -> {
+                    Toast.makeText(this, "Failed to save booking: " + e.getMessage(), Toast.LENGTH_LONG).show();
+                });
+            }
         }).start();
     }
 
@@ -291,11 +349,21 @@ public class BookingActivity extends AppCompatActivity {
                     if (serverBooking != null) {
                         // Update local booking with server data
                         new Thread(() -> {
-                            booking.setId(serverBooking.getId());
-                            booking.setBookingReference(serverBooking.getBookingReference());
-                            booking.setStatus(serverBooking.getStatus());
-                            booking.setQrCodeData(serverBooking.getQrCodeData());
-                            bookingDao.update(booking);
+                            try {
+                                booking.setId(serverBooking.getId());
+                                if (serverBooking.getBookingReference() != null) {
+                                    booking.setBookingReference(serverBooking.getBookingReference());
+                                }
+                                if (serverBooking.getStatus() != null) {
+                                    booking.setStatus(serverBooking.getStatus());
+                                }
+                                if (serverBooking.getQrCodeData() != null) {
+                                    booking.setQrCodeData(serverBooking.getQrCodeData());
+                                }
+                                bookingDao.update(booking);
+                            } catch (Exception e) {
+                                android.util.Log.e("BOOKING", "Error updating booking: " + e.getMessage());
+                            }
                         }).start();
                     }
                 } else {

@@ -20,7 +20,7 @@ import com.journeyapps.barcodescanner.BarcodeEncoder;
 public class QRDisplayActivity extends AppCompatActivity {
 
     private ImageView ivQRCode;
-    private TextView tvBookingReference, tvStation, tvDateTime;
+    private TextView tvBookingReference, tvStation, tvDateTime, tvStatus;
 
     // Android logging with tag
     private static final String TAG = "QRDisplayActivity";
@@ -39,23 +39,33 @@ public class QRDisplayActivity extends AppCompatActivity {
         tvBookingReference = findViewById(R.id.tvBookingReference);
         tvStation = findViewById(R.id.tvStation);
         tvDateTime = findViewById(R.id.tvDateTime);
+        tvStatus = findViewById(R.id.tvStatus);
+        
+        findViewById(R.id.btnClose).setOnClickListener(v -> finish());
     }
 
     private void displayQRCode() {
         Booking booking = (Booking) getIntent().getSerializableExtra("booking");
 
-        if (booking != null) {
+        if (booking != null && booking.getId() != null && !booking.getId().isEmpty()) {
             // Set booking details
-            tvBookingReference.setText(booking.getBookingReference());
-            tvStation.setText(booking.getStationName());
-            tvDateTime.setText(DateUtils.formatDateTime(booking.getReservationDateTime()));
+            tvBookingReference.setText("Booking ID: " + booking.getId());
+            tvStation.setText("Station: " + (booking.getStationName() != null ? booking.getStationName() : booking.getChargingStationId()));
+            tvDateTime.setText("Date: " + DateUtils.formatDateTime(booking.getReservationDateTime()));
+            tvStatus.setText("Status: " + booking.getStatus());
 
-            // Generate QR Code
-            generateQRCode(booking.getQrCodeData());
+            // Generate QR Code - always use booking ID for consistency
+            String qrData = com.evcharging.mobile.utils.QRCodeGenerator.generateBookingQRData(
+                booking.getId(), 
+                booking.getEvOwnerNIC(), 
+                booking.getChargingStationId()
+            );
+            generateQRCode(qrData);
+            Log.i(TAG, "Generated QR code for booking: " + booking.getId());
         } else {
-            // Handle case where booking is null
-            Toast.makeText(this, "Booking information not available", Toast.LENGTH_SHORT).show();
-            Log.w(TAG, "Booking object is null in displayQRCode");
+            Toast.makeText(this, "Invalid booking information", Toast.LENGTH_SHORT).show();
+            Log.w(TAG, "Booking object is null or has invalid ID");
+            finish();
         }
     }
 
@@ -66,26 +76,15 @@ public class QRDisplayActivity extends AppCompatActivity {
             return;
         }
 
-        MultiFormatWriter multiFormatWriter = new MultiFormatWriter();
         try {
-            BitMatrix bitMatrix = multiFormatWriter.encode(qrData, BarcodeFormat.QR_CODE, 500, 500);
-            BarcodeEncoder barcodeEncoder = new BarcodeEncoder();
-            Bitmap bitmap = barcodeEncoder.createBitmap(bitMatrix);
-            ivQRCode.setImageBitmap(bitmap);
-
-            Log.i(TAG, "QR code generated successfully for booking");
-
-        } catch (WriterException e) {
-            // Log the error with proper logging
-            Log.e(TAG, "Failed to generate QR code: " + e.getMessage(), e);
-
-            // Show user-friendly error message
-            Toast.makeText(this, "Failed to generate QR code", Toast.LENGTH_SHORT).show();
-
-            // Optionally show a placeholder or error image
-           // ivQRCode.setImageResource(R.drawable.ic_error);
+            Bitmap bitmap = com.evcharging.mobile.utils.QRCodeGenerator.generateQRCode(qrData, 500, 500);
+            if (bitmap != null) {
+                ivQRCode.setImageBitmap(bitmap);
+                Log.i(TAG, "QR code generated successfully for booking");
+            } else {
+                Toast.makeText(this, "Failed to generate QR code", Toast.LENGTH_SHORT).show();
+            }
         } catch (Exception e) {
-            // Catch any other unexpected exceptions
             Log.e(TAG, "Unexpected error generating QR code: " + e.getMessage(), e);
             Toast.makeText(this, "Unexpected error occurred", Toast.LENGTH_SHORT).show();
         }
