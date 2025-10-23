@@ -3,6 +3,9 @@ package com.evcharging.mobile.api;
 import com.evcharging.mobile.models.User;
 import com.evcharging.mobile.models.ChargingStation;
 import com.evcharging.mobile.models.Booking;
+import com.evcharging.mobile.models.TimeSlotAvailability;
+import com.evcharging.mobile.models.BookingRequest;
+import com.evcharging.mobile.models.BookingResponse;
 
 import java.util.List;
 import retrofit2.Call;
@@ -51,7 +54,16 @@ public interface ApiService {
     @GET("api/ChargingStations/{id}")
     Call<ChargingStation> getStationById(@Path("id") String id);
 
-    // Bookings Endpoints (server uses capitalized controller name)
+    // Time Slot Booking Endpoints
+    @GET("api/TimeSlots/availability/{stationId}")
+    Call<TimeSlotAvailability> getStationAvailability(
+            @Path("stationId") String stationId,
+            @Query("date") String date);
+
+    @POST("api/TimeSlots/book")
+    Call<BookingResponse> createBooking(@Body BookingRequest request);
+
+    // Legacy Bookings Endpoints (server uses capitalized controller name)
     @GET("api/Bookings")
     Call<List<Booking>> getAllBookings();
 

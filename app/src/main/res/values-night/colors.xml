@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Green and White Theme - Night Mode Colors -->
+    <color name="colorPrimary">#81C784</color>
+    <color name="colorPrimaryDark">#4CAF50</color>
+    <color name="colorAccent">#AED581</color>
+
+    <color name="colorSuccess">#81C784</color>
+    <color name="colorWarning">#FFB74D</color>
+    <color name="colorDanger">#EF5350</color>
+    <color name="colorInfo">#81C784</color>
+    <color name="colorSecondary">#AED581</color>
+
+    <color name="colorSuccessLight">#1B5E20</color>
+    <color name="colorWarningLight">#E65100</color>
+    <color name="colorDangerLight">#B71C1C</color>
+    <color name="colorInfoLight">#1B5E20</color>
+
+    <color name="colorBackground">#121212</color>
+    <color name="colorTextPrimary">#FFFFFF</color>
+    <color name="colorTextSecondary">#B0B0B0</color>
+    <color name="colorDivider">#333333</color>
+
+    <color name="white">#FFFFFF</color>
+    <color name="black">#000000</color>
+
+    <!-- Green Theme Specific Colors - Night Mode -->
+    <color name="green_light">#1B5E20</color>
+    <color name="green_medium">#81C784</color>
+    <color name="green_dark">#4CAF50</color>
+    <color name="green_accent">#AED581</color>
+    <color name="green_muted">#66BB6A</color>
+
+    <!-- Aliases for layout compatibility -->
+    <color name="primary_color">@color/colorPrimary</color>
+    <color name="background_light">@color/colorBackground</color>
+    <color name="card_background">#1E1E1E</color>
+    <color name="border_color">@color/colorDivider</color>
+    <color name="primary_text">@color/colorTextPrimary</color>
+    <color name="secondary_text">@color/colorTextSecondary</color>
+</resources>

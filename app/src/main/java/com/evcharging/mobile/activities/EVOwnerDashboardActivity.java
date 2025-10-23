@@ -26,9 +26,13 @@ import java.util.List;
 public class EVOwnerDashboardActivity extends AppCompatActivity {
 
     private TextView tvWelcome, tvPendingCount, tvApprovedCount;
-    private Button btnNewBooking, btnViewHistory, btnViewMap, btnLogout;
+    private Button btnNewBooking, btnViewHistory, btnViewMap, btnProfile;
     private RecyclerView rvUpcomingBookings;
     private BookingAdapter bookingAdapter;
+    private com.google.android.material.floatingactionbutton.FloatingActionButton fabNewBooking;
+    private androidx.appcompat.widget.Toolbar toolbar;
+    private androidx.cardview.widget.CardView cvProfileAvatar;
+    private TextView tvToolbarAvatar;
 
     private UserDao userDao;
     private BookingDao bookingDao;
@@ -138,13 +142,19 @@ public class EVOwnerDashboardActivity extends AppCompatActivity {
     }
 
     private void initializeViews() {
+        toolbar = findViewById(R.id.toolbar);
+        setSupportActionBar(toolbar);
+        cvProfileAvatar = findViewById(R.id.cvProfileAvatar);
+        tvToolbarAvatar = findViewById(R.id.tvToolbarAvatar);
+
         tvWelcome = findViewById(R.id.tvWelcome);
         tvPendingCount = findViewById(R.id.tvPendingCount);
         tvApprovedCount = findViewById(R.id.tvApprovedCount);
         btnNewBooking = findViewById(R.id.btnNewBooking);
         btnViewHistory = findViewById(R.id.btnViewHistory);
         btnViewMap = findViewById(R.id.btnViewMap);
-        btnLogout = findViewById(R.id.btnLogout);
+        btnProfile = findViewById(R.id.btnProfile);
+        fabNewBooking = findViewById(R.id.fabNewBooking);
         rvUpcomingBookings = findViewById(R.id.rvUpcomingBookings);
 
         prefs = new SharedPreferencesHelper(this);
@@ -167,10 +177,32 @@ public class EVOwnerDashboardActivity extends AppCompatActivity {
             User user = userDao.getUserByNIC(currentUserNIC);
             runOnUiThread(() -> {
                 if (user != null) {
-                    tvWelcome.setText("Welcome, " + user.getFirstName() + "!");
+                    String greeting = getTimeBasedGreeting() + ", " + user.getFirstName() + "!";
+                    tvWelcome.setText(greeting);
+                    
+                    // Set avatar letter
+                    if (user.getFirstName() != null && !user.getFirstName().isEmpty()) {
+                        String firstLetter = user.getFirstName().substring(0, 1).toUpperCase();
+                        tvToolbarAvatar.setText(firstLetter);
+                    }
                 }
             });
         }).start();
+    }
+
+    private String getTimeBasedGreeting() {
+        java.util.Calendar calendar = java.util.Calendar.getInstance();
+        int hour = calendar.get(java.util.Calendar.HOUR_OF_DAY);
+
+        if (hour >= 5 && hour < 12) {
+            return "Good morning";
+        } else if (hour >= 12 && hour < 17) {
+            return "Good afternoon";
+        } else if (hour >= 17 && hour < 22) {
+            return "Good evening";
+        } else {
+            return "Good night";
+        }
     }
 
     private void loadUpcomingBookings() {
@@ -257,11 +289,17 @@ public class EVOwnerDashboardActivity extends AppCompatActivity {
             startActivity(new Intent(this, MapActivity.class));
         });
 
-        btnLogout.setOnClickListener(v -> {
-            prefs.clearUserData();
-            Toast.makeText(this, "Logged out successfully", Toast.LENGTH_SHORT).show();
-            startActivity(new Intent(this, LoginActivity.class));
-            finish();
+        btnProfile.setOnClickListener(v -> {
+            startActivity(new Intent(this, ProfileActivity.class));
+        });
+
+        fabNewBooking.setOnClickListener(v -> {
+            startActivity(new Intent(this, BookingActivity.class));
+        });
+
+        // Profile avatar click listener
+        cvProfileAvatar.setOnClickListener(v -> {
+            startActivity(new Intent(this, ProfileActivity.class));
         });
 
         // Booking adapter click listeners
@@ -287,6 +325,31 @@ public class EVOwnerDashboardActivity extends AppCompatActivity {
                 Toast.makeText(this, "QR Code available only for approved bookings", Toast.LENGTH_SHORT).show();
             }
         });
+    }
+
+    @Override
+    public boolean onCreateOptionsMenu(android.view.Menu menu) {
+        getMenuInflater().inflate(R.menu.dashboard_menu, menu);
+        return true;
+    }
+
+    @Override
+    public boolean onOptionsItemSelected(android.view.MenuItem item) {
+        int id = item.getItemId();
+
+        if (id == R.id.action_logout) {
+            prefs.clearUserData();
+            Toast.makeText(this, "Logged out successfully", Toast.LENGTH_SHORT).show();
+            startActivity(new Intent(this, LoginActivity.class));
+            finish();
+            return true;
+        } else if (id == R.id.action_settings) {
+            // TODO: Open settings activity
+            Toast.makeText(this, "Settings coming soon", Toast.LENGTH_SHORT).show();
+            return true;
+        }
+
+        return super.onOptionsItemSelected(item);
     }
 
     private void cancelBooking(Booking booking) {

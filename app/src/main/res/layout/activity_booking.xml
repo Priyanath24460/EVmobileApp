@@ -12,6 +12,75 @@
         android:layout_height="wrap_content"
         android:orientation="vertical">
 
+        <!-- Map Section -->
+        <com.google.android.material.card.MaterialCardView
+            android:layout_width="match_parent"
+            android:layout_height="300dp"
+            android:layout_marginBottom="16dp"
+            app:cardCornerRadius="12dp"
+            app:cardElevation="4dp">
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:orientation="vertical"
+                android:background="@color/white">
+
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="Charging Stations Map"
+                    android:textSize="16sp"
+                    android:textStyle="bold"
+                    android:textColor="@color/colorPrimary"
+                    android:gravity="center"
+                    android:padding="8dp"
+                    android:background="@color/green_light" />
+
+                <WebView
+                    android:id="@+id/mapWebView"
+                    android:layout_width="match_parent"
+                    android:layout_height="0dp"
+                    android:layout_weight="1" />
+
+            </LinearLayout>
+
+        </com.google.android.material.card.MaterialCardView>
+
+        <!-- Map Control Buttons -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:weightSum="2"
+            android:layout_marginBottom="16dp">
+
+            <Button
+                android:id="@+id/btnViewAll"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:layout_marginEnd="8dp"
+                android:text="View All"
+                android:backgroundTint="@color/colorPrimary"
+                android:textColor="@android:color/white"
+                android:textSize="14sp"
+                android:padding="12dp" />
+
+            <Button
+                android:id="@+id/btnNearby"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:layout_marginStart="8dp"
+                android:text="Nearby (5km)"
+                android:backgroundTint="@color/colorSecondary"
+                android:textColor="@android:color/white"
+                android:textSize="14sp"
+                android:padding="12dp" />
+
+        </LinearLayout>
+
         <!-- Station Selection -->
         <com.google.android.material.textfield.TextInputLayout
             android:layout_width="match_parent"
@@ -38,10 +107,10 @@
             android:layout_height="wrap_content"
             android:layout_marginBottom="16dp"
             android:text="Select Station"
-            android:backgroundTint="#2196F3"
+            android:backgroundTint="@color/colorPrimary"
             android:textColor="@android:color/white" />
 
-        <!-- Date &amp; Time Selection -->
+        <!-- Date Selection -->
         <com.google.android.material.textfield.TextInputLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
@@ -52,57 +121,62 @@
             app:boxCornerRadiusTopStart="8dp">
 
             <com.google.android.material.textfield.TextInputEditText
-                android:id="@+id/etDateTime"
+                android:id="@+id/etDate"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:hint="Select Date &amp; Time"
+                android:hint="Select Date"
                 android:focusable="false"
                 android:clickable="false" />
 
         </com.google.android.material.textfield.TextInputLayout>
 
         <Button
-            android:id="@+id/btnSelectDateTime"
+            android:id="@+id/btnSelectDate"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginBottom="16dp"
-            android:text="Select Date &amp; Time"
-            android:backgroundTint="#2196F3"
+            android:text="Select Date"
+            android:backgroundTint="@color/colorPrimary"
             android:textColor="@android:color/white" />
 
-        <!-- Duration Selection -->
-        <com.google.android.material.textfield.TextInputLayout
+        <!-- Time Slots Section -->
+        <ProgressBar
+            android:id="@+id/progressBar"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="center"
+            android:layout_marginVertical="16dp"
+            android:visibility="gone" />
+
+        <LinearLayout
+            android:id="@+id/layoutTimeSlots"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginBottom="16dp"
-            app:boxCornerRadiusBottomEnd="8dp"
-            app:boxCornerRadiusBottomStart="8dp"
-            app:boxCornerRadiusTopEnd="8dp"
-            app:boxCornerRadiusTopStart="8dp">
+            android:orientation="vertical"
+            android:visibility="gone"
+            android:background="@drawable/rounded_background"
+            android:padding="16dp"
+            android:layout_marginBottom="16dp">
 
-            <com.google.android.material.textfield.TextInputEditText
-                android:id="@+id/etDuration"
+            <TextView
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:hint="Select Duration"
-                android:focusable="false"
-                android:clickable="false" />
+                android:text="Available Time Slots"
+                android:textSize="18sp"
+                android:textStyle="bold"
+                android:textColor="#333"
+                android:layout_marginBottom="16dp"
+                android:gravity="center" />
 
-        </com.google.android.material.textfield.TextInputLayout>
+            <LinearLayout
+                android:id="@+id/containerChargingPoints"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical" />
 
-        <!-- Booking Summary -->
-        <TextView
-            android:id="@+id/tvSummary"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginBottom="24dp"
-            android:padding="16dp"
-            android:background="@drawable/rounded_background"
-            android:text="Booking Summary will appear here..."
-            android:textSize="14sp"
-            android:lineSpacingExtra="4dp" />
+        </LinearLayout>
 
-        <!-- Action Buttons -->
+        <!-- Booking Actions -->
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
@@ -120,14 +194,16 @@
                 android:textColor="@android:color/white" />
 
             <Button
-                android:id="@+id/btnBook"
+                android:id="@+id/btnBookNow"
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
                 android:layout_marginStart="8dp"
-                android:text="Book Now"
+                android:text="Select Time Slot"
                 android:backgroundTint="#4CAF50"
-                android:textColor="@android:color/white" />
+                android:textColor="@android:color/white"
+                android:enabled="false"
+                android:alpha="0.5" />
 
         </LinearLayout>
 

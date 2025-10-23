@@ -24,7 +24,7 @@ import com.google.zxing.integration.android.IntentResult;
 public class OperatorDashboardActivity extends AppCompatActivity {
 
     private TextView tvWelcome, tvOperatorInfo;
-    private Button btnScanQR, btnManualVerify, btnViewActiveBookings, btnLogout;
+    private Button btnScanQR, btnManualVerify, btnViewActiveBookings, btnProfile, btnLogout;
     
     private SharedPreferencesHelper prefs;
     private User currentOperator;
@@ -49,6 +49,7 @@ public class OperatorDashboardActivity extends AppCompatActivity {
         btnScanQR = findViewById(R.id.btnScanQR);
         btnManualVerify = findViewById(R.id.btnManualVerify);
         btnViewActiveBookings = findViewById(R.id.btnViewActiveBookings);
+        btnProfile = findViewById(R.id.btnProfile);
         btnLogout = findViewById(R.id.btnLogout);
 
         prefs = new SharedPreferencesHelper(this);
@@ -80,6 +81,7 @@ public class OperatorDashboardActivity extends AppCompatActivity {
         btnScanQR.setOnClickListener(v -> startQRScanner());
         btnManualVerify.setOnClickListener(v -> startManualVerification());
         btnViewActiveBookings.setOnClickListener(v -> viewActiveBookings());
+        btnProfile.setOnClickListener(v -> viewProfile());
         btnLogout.setOnClickListener(v -> logout());
     }
 
@@ -156,6 +158,11 @@ public class OperatorDashboardActivity extends AppCompatActivity {
         // Intent intent = new Intent(this, ActiveBookingsActivity.class);
         // intent.putExtra("operator_id", currentOperator.getNic());
         // startActivity(intent);
+    }
+
+    private void viewProfile() {
+        Intent intent = new Intent(this, ProfileActivity.class);
+        startActivity(intent);
     }
 
     private void logout() {

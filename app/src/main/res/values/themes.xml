@@ -1,8 +1,47 @@
 <resources xmlns:tools="http://schemas.android.com/tools">
     <!-- Base application theme. -->
     <style name="Base.Theme.EVChargingMobile" parent="Theme.Material3.DayNight.NoActionBar">
-        <!-- Customize your light theme here. -->
-        <!-- <item name="colorPrimary">@color/my_light_primary</item> -->
+        <!-- Primary Colors -->
+        <item name="colorPrimary">@color/colorPrimary</item>
+        <item name="colorOnPrimary">@color/white</item>
+        <item name="colorPrimaryContainer">@color/green_light</item>
+        <item name="colorOnPrimaryContainer">@color/green_dark</item>
+
+        <!-- Secondary Colors -->
+        <item name="colorSecondary">@color/colorSecondary</item>
+        <item name="colorOnSecondary">@color/white</item>
+        <item name="colorSecondaryContainer">@color/green_muted</item>
+        <item name="colorOnSecondaryContainer">@color/green_dark</item>
+
+        <!-- Tertiary Colors -->
+        <item name="colorTertiary">@color/green_accent</item>
+        <item name="colorOnTertiary">@color/green_dark</item>
+        <item name="colorTertiaryContainer">@color/green_light</item>
+        <item name="colorOnTertiaryContainer">@color/green_dark</item>
+
+        <!-- Error Colors -->
+        <item name="colorError">@color/colorDanger</item>
+        <item name="colorOnError">@color/white</item>
+        <item name="colorErrorContainer">@color/colorDangerLight</item>
+        <item name="colorOnErrorContainer">@color/colorDanger</item>
+
+        <!-- Surface Colors -->
+        <item name="colorSurface">@color/colorBackground</item>
+        <item name="colorOnSurface">@color/colorTextPrimary</item>
+        <item name="colorSurfaceVariant">@color/white</item>
+        <item name="colorOnSurfaceVariant">@color/colorTextSecondary</item>
+
+        <!-- Background Colors -->
+        <item name="android:colorBackground">@color/colorBackground</item>
+        <item name="colorOnBackground">@color/colorTextPrimary</item>
+
+        <!-- Outline Colors -->
+        <item name="colorOutline">@color/colorDivider</item>
+        <item name="colorOutlineVariant">@color/colorDivider</item>
+
+        <!-- Status Bar -->
+        <item name="android:statusBarColor">@color/colorPrimaryDark</item>
+        <item name="android:windowLightStatusBar">false</item>
     </style>
 
     <style name="Theme.EVChargingMobile" parent="Base.Theme.EVChargingMobile" />

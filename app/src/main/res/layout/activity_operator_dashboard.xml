@@ -107,6 +107,17 @@
 
     </com.google.android.material.card.MaterialCardView>
 
+    <!-- Profile Button -->
+    <Button
+        android:id="@+id/btnProfile"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginBottom="16dp"
+        android:text="👤 View Profile"
+        android:textSize="16sp"
+        style="@style/Widget.Material3.Button.OutlinedButton"
+        android:padding="16dp" />
+
     <!-- Spacer -->
     <View
         android:layout_width="match_parent"
