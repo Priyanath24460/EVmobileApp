@@ -178,44 +178,65 @@ public class LoginActivity extends AppCompatActivity {
     }
 
     private void loginStationOperator(String username, String password) {
-        // Use API authentication for station operators
-        com.evcharging.mobile.api.ApiService api = com.evcharging.mobile.api.ApiClient.getClient(this).create(com.evcharging.mobile.api.ApiService.class);
-        com.evcharging.mobile.api.AuthRequest request = new com.evcharging.mobile.api.AuthRequest(username, password);
-        
-        retrofit2.Call<com.evcharging.mobile.api.AuthResponse> call = api.authenticateUser(request);
-        call.enqueue(new retrofit2.Callback<com.evcharging.mobile.api.AuthResponse>() {
-            @Override
-            public void onResponse(retrofit2.Call<com.evcharging.mobile.api.AuthResponse> call, retrofit2.Response<com.evcharging.mobile.api.AuthResponse> response) {
-                if (response.isSuccessful() && response.body() != null && response.body().isSuccess()) {
-                    prefs.setLoggedIn(true);
-                    prefs.setLoggedInUserNIC(username);
-                    prefs.setUserType("StationOperator");
+        try {
+            // Use API authentication for station operators
+            com.evcharging.mobile.api.ApiService api = com.evcharging.mobile.api.ApiClient.getClient(this).create(com.evcharging.mobile.api.ApiService.class);
+            com.evcharging.mobile.api.AuthRequest request = new com.evcharging.mobile.api.AuthRequest(username, password);
+            
+            retrofit2.Call<com.evcharging.mobile.api.AuthResponse> call = api.authenticateUser(request);
+            call.enqueue(new retrofit2.Callback<com.evcharging.mobile.api.AuthResponse>() {
+                @Override
+                public void onResponse(retrofit2.Call<com.evcharging.mobile.api.AuthResponse> call, retrofit2.Response<com.evcharging.mobile.api.AuthResponse> response) {
+                    try {
+                        if (response.isSuccessful() && response.body() != null && response.body().isSuccess()) {
+                            prefs.setLoggedIn(true);
+                            prefs.setLoggedInUserNIC(username);
+                            prefs.setUserType("StationOperator");
 
-                    Toast.makeText(LoginActivity.this, "Login successful!", Toast.LENGTH_SHORT).show();
-                    startActivity(new Intent(LoginActivity.this, OperatorDashboardActivity.class));
-                    finish();
-                } else {
-                    String message = response.body() != null ? response.body().getMessage() : "Invalid credentials";
-                    Toast.makeText(LoginActivity.this, message, Toast.LENGTH_SHORT).show();
+                            Toast.makeText(LoginActivity.this, "Login successful!", Toast.LENGTH_SHORT).show();
+                            
+                            Intent intent = new Intent(LoginActivity.this, OperatorDashboardActivity.class);
+                            startActivity(intent);
+                            finish();
+                        } else {
+                            String message = response.body() != null ? response.body().getMessage() : "Invalid credentials";
+                            Toast.makeText(LoginActivity.this, message, Toast.LENGTH_SHORT).show();
+                        }
+                    } catch (Exception e) {
+                        android.util.Log.e("LoginActivity", "Error in onResponse: " + e.getMessage(), e);
+                        Toast.makeText(LoginActivity.this, "Login error: " + e.getMessage(), Toast.LENGTH_LONG).show();
+                    }
                 }
-            }
 
-            @Override
-            public void onFailure(retrofit2.Call<com.evcharging.mobile.api.AuthResponse> call, Throwable t) {
-                // Fallback to demo credentials if API fails
-                if ("operator".equals(username) && "operator123".equals(password)) {
-                    prefs.setLoggedIn(true);
-                    prefs.setLoggedInUserNIC(username);
-                    prefs.setUserType("StationOperator");
+                @Override
+                public void onFailure(retrofit2.Call<com.evcharging.mobile.api.AuthResponse> call, Throwable t) {
+                    try {
+                        android.util.Log.e("LoginActivity", "API call failed: " + t.getMessage(), t);
+                        
+                        // Fallback to demo credentials if API fails
+                        if ("operator".equals(username) && "operator123".equals(password)) {
+                            prefs.setLoggedIn(true);
+                            prefs.setLoggedInUserNIC(username);
+                            prefs.setUserType("StationOperator");
 
-                    Toast.makeText(LoginActivity.this, "Login successful! (Demo Mode)", Toast.LENGTH_SHORT).show();
-                    startActivity(new Intent(LoginActivity.this, OperatorDashboardActivity.class));
-                    finish();
-                } else {
-                    Toast.makeText(LoginActivity.this, "Network error: " + t.getMessage(), Toast.LENGTH_LONG).show();
+                            Toast.makeText(LoginActivity.this, "Login successful! (Demo Mode)", Toast.LENGTH_SHORT).show();
+                            
+                            Intent intent = new Intent(LoginActivity.this, OperatorDashboardActivity.class);
+                            startActivity(intent);
+                            finish();
+                        } else {
+                            Toast.makeText(LoginActivity.this, "Network error: " + t.getMessage(), Toast.LENGTH_LONG).show();
+                        }
+                    } catch (Exception e) {
+                        android.util.Log.e("LoginActivity", "Error in onFailure: " + e.getMessage(), e);
+                        Toast.makeText(LoginActivity.this, "Unexpected error during login", Toast.LENGTH_LONG).show();
+                    }
                 }
-            }
-        });
+            });
+        } catch (Exception e) {
+            android.util.Log.e("LoginActivity", "Error in loginStationOperator: " + e.getMessage(), e);
+            Toast.makeText(this, "Error initializing login: " + e.getMessage(), Toast.LENGTH_LONG).show();
+        }
     }
 
     private void navigateToRegistration() {

@@ -76,6 +76,11 @@
             android:screenOrientation="portrait" />
 
         <activity
+            android:name=".activities.OperatorDashboardActivity"
+            android:exported="false"
+            android:screenOrientation="portrait" />
+
+        <activity
             android:name=".activities.StationOperatorActivity"
             android:exported="false"
             android:screenOrientation="portrait" />
@@ -93,6 +98,21 @@
 
         <activity
             android:name=".activities.BookingHistoryActivity"
+            android:exported="false"
+            android:screenOrientation="portrait" />
+
+        <activity
+            android:name=".activities.BookingVerificationActivity"
+            android:exported="false"
+            android:screenOrientation="portrait" />
+
+        <activity
+            android:name=".activities.ManualVerificationActivity"
+            android:exported="false"
+            android:screenOrientation="portrait" />
+
+        <activity
+            android:name=".activities.BookingConfirmationActivity"
             android:exported="false"
             android:screenOrientation="portrait" />
 
