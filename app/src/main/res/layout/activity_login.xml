@@ -1,56 +1,65 @@
 <?xml version="1.0" encoding="utf-8"?>
-<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:padding="20dp"
-    android:background="@color/colorBackground">
+    android:background="@drawable/gradient_green_background">
 
+    <!-- Top Green Section with Logo -->
     <LinearLayout
+        android:id="@+id/topSection"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_alignParentTop="true"
+        android:layout_above="@+id/bottomSection"
+        android:orientation="vertical"
+        android:gravity="center"
+        android:padding="40dp">
+
+        <!-- Logo -->
+        <ImageView
+            android:layout_width="80dp"
+            android:layout_height="80dp"
+            android:src="@drawable/ic_ev_charging_white"
+            android:layout_marginBottom="20dp"
+            android:contentDescription="App Logo" />
+
+        <!-- App Name -->
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="EV CHARGING"
+            android:textColor="@color/white"
+            android:textSize="24sp"
+            android:textStyle="bold"
+            android:letterSpacing="0.1"
+            android:layout_marginBottom="50dp" />
+
+    </LinearLayout>
+
+    <!-- Bottom White Curved Section -->
+    <LinearLayout
+        android:id="@+id/bottomSection"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:orientation="vertical">
+        android:layout_alignParentBottom="true"
+        android:background="@drawable/white_curved_background"
+        android:orientation="vertical"
+        android:padding="30dp"
+        android:paddingTop="40dp">
 
-        <!-- Header -->
-        <LinearLayout
-            android:layout_width="match_parent"
+        <!-- Welcome Text -->
+        <TextView
+            android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:orientation="vertical"
-            android:gravity="center"
-            android:layout_marginBottom="40dp">
-
-            <ImageView
-                android:layout_width="80dp"
-                android:layout_height="80dp"
-                android:src="@drawable/ic_ev_charging"
-                android:contentDescription="@string/app_name" />
-
-            <TextView
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="10dp"
-                android:text="EV Charging System"
-                android:textColor="@color/colorPrimary"
-                android:textSize="24sp"
-                android:textStyle="bold" />
-
-            <TextView
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="Sign in to your account"
-                android:textColor="@color/colorSecondary"
-                android:textSize="16sp" />
-
-        </LinearLayout>
+            android:text="Welcome back !"
+            android:textColor="@color/colorTextPrimary"
+            android:textSize="28sp"
+            android:textStyle="bold"
+            android:layout_gravity="start"
+            android:layout_marginBottom="30dp" />
 
         <!-- User Type Selection -->
-        <TextView
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:text="User Type"
-            android:textColor="@color/colorTextPrimary"
-            android:textSize="16sp"
-            android:layout_marginBottom="8dp" />
-
         <RadioGroup
             android:id="@+id/rgUserType"
             android:layout_width="match_parent"
@@ -64,31 +73,36 @@
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
                 android:text="EV Owner"
-                android:checked="true" />
+                android:checked="true"
+                android:buttonTint="@color/green_vibrant" />
 
             <RadioButton
                 android:id="@+id/rbStationOperator"
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
-                android:text="Station Operator" />
+                android:text="Station Operator"
+                android:buttonTint="@color/green_vibrant" />
 
         </RadioGroup>
 
-        <!-- NIC/Username Input -->
+        <!-- Username Input -->
         <com.google.android.material.textfield.TextInputLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginBottom="16dp"
+            android:hint="Username"
+            app:boxStrokeColor="@color/green_vibrant"
+            app:hintTextColor="@color/colorTextSecondary"
             style="@style/Widget.Material3.TextInputLayout.OutlinedBox">
 
             <com.google.android.material.textfield.TextInputEditText
                 android:id="@+id/etNIC"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:hint="NIC or Username"
                 android:inputType="text"
-                android:maxLines="1" />
+                android:maxLines="1"
+                android:textSize="16sp" />
 
         </com.google.android.material.textfield.TextInputLayout>
 
@@ -96,50 +110,136 @@
         <com.google.android.material.textfield.TextInputLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginBottom="24dp"
+            android:layout_marginBottom="16dp"
+            android:hint="Password"
+            app:boxStrokeColor="@color/green_vibrant"
+            app:hintTextColor="@color/colorTextSecondary"
+            app:endIconMode="password_toggle"
+            app:endIconTint="@color/green_vibrant"
             style="@style/Widget.Material3.TextInputLayout.OutlinedBox">
 
             <com.google.android.material.textfield.TextInputEditText
                 android:id="@+id/etPassword"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:hint="Password"
                 android:inputType="textPassword"
-                android:maxLines="1" />
+                android:maxLines="1"
+                android:textSize="16sp" />
 
         </com.google.android.material.textfield.TextInputLayout>
+
+        <!-- Remember Me and Forgot Password -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:layout_marginBottom="30dp">
+
+            <CheckBox
+                android:id="@+id/cbRememberMe"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Remember me"
+                android:textSize="14sp"
+                android:buttonTint="@color/green_vibrant"
+                android:layout_weight="1" />
+
+            <TextView
+                android:id="@+id/tvForgotPassword"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Forgot password?"
+                android:textColor="@color/green_vibrant"
+                android:textSize="14sp"
+                android:clickable="true"
+                android:focusable="true"
+                android:background="?attr/selectableItemBackground"
+                android:padding="8dp" />
+
+        </LinearLayout>
 
         <!-- Login Button -->
         <Button
             android:id="@+id/btnLogin"
             android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:text="Sign In"
+            android:layout_height="55dp"
+            android:text="Login"
             android:textColor="@color/white"
-            android:backgroundTint="@color/colorPrimary"
-            android:layout_marginBottom="16dp"
-            style="@style/Widget.Material3.Button" />
+            android:textSize="16sp"
+            android:textStyle="bold"
+            android:background="@drawable/button_green_selector"
+            android:layout_marginBottom="20dp"
+            android:elevation="4dp" />
 
-        <!-- Register Button -->
-        <Button
-            android:id="@+id/btnRegister"
+        <!-- Sign Up Section -->
+        <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="Create New Account"
-            android:textColor="@color/colorPrimary"
-            android:backgroundTint="@android:color/transparent"
-            style="@style/Widget.Material3.Button.OutlinedButton" />
+            android:orientation="horizontal"
+            android:gravity="center"
+            android:layout_marginBottom="20dp">
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="New user? "
+                android:textColor="@color/colorTextSecondary"
+                android:textSize="14sp" />
+
+            <TextView
+                android:id="@+id/btnRegister"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Sign Up"
+                android:textColor="@color/green_vibrant"
+                android:textSize="14sp"
+                android:textStyle="bold"
+                android:clickable="true"
+                android:focusable="true"
+                android:background="?attr/selectableItemBackground"
+                android:padding="8dp" />
+
+        </LinearLayout>
+
+        <!-- OR Divider -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:gravity="center_vertical"
+            android:layout_marginBottom="20dp">
+
+            <View
+                android:layout_width="0dp"
+                android:layout_height="1dp"
+                android:layout_weight="1"
+                android:background="@color/colorDivider" />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="  Or  "
+                android:textColor="@color/colorTextSecondary"
+                android:textSize="12sp" />
+
+            <View
+                android:layout_width="0dp"
+                android:layout_height="1dp"
+                android:layout_weight="1"
+                android:background="@color/colorDivider" />
+
+        </LinearLayout>
 
         <!-- Demo Info -->
         <TextView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginTop="30dp"
             android:text="Demo Accounts:\nEV Owner: 123456789V / password123\nStation Operator: operator / operator123"
-            android:textColor="@color/colorSecondary"
+            android:textColor="@color/colorTextSecondary"
             android:textSize="12sp"
-            android:lineSpacingExtra="4dp" />
+            android:gravity="center"
+            android:lineSpacingExtra="2dp" />
 
     </LinearLayout>
 
-</ScrollView>
+</RelativeLayout>

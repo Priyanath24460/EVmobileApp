@@ -27,11 +27,11 @@ public class Booking implements Serializable {
     @SerializedName("chargingStationId")
     private String chargingStationId;
 
-    @SerializedName("slotId")
+    @SerializedName("chargingPointNumber")
     private String slotId;
 
     @TypeConverters(DateConverter.class)
-    @SerializedName("reservationDateTime")
+    @SerializedName("startTime")
     private Date reservationDateTime;
 
     @TypeConverters(DateConverter.class)

@@ -12,6 +12,7 @@ import retrofit2.Call;
 import retrofit2.http.Body;
 import retrofit2.http.DELETE;
 import retrofit2.http.GET;
+import retrofit2.http.PATCH;
 import retrofit2.http.POST;
 import retrofit2.http.PUT;
 import retrofit2.http.Path;
@@ -37,6 +38,10 @@ public interface ApiService {
 
     @PUT("api/EVOwners/{nic}/reactivate")
     Call<User> reactivateEVOwner(@Path("nic") String nic, @Body ReactivationRequest request);
+
+    // Status update endpoint (PATCH)
+    @PATCH("api/EVOwners/{nic}/status")
+    Call<okhttp3.ResponseBody> updateEVOwnerStatus(@Path("nic") String nic, @Body okhttp3.RequestBody isActive);
 
     // Charging Stations Endpoints
     @GET("api/ChargingStations/active")

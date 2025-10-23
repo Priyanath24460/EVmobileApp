@@ -68,18 +68,33 @@ public class EVOwnerDashboardActivity extends AppCompatActivity {
     }
 
     private void syncBookingsFromServer() {
-        if (currentUserNIC == null || currentUserNIC.isEmpty()) return;
+        if (currentUserNIC == null || currentUserNIC.isEmpty()) {
+            android.util.Log.w("Dashboard", "Cannot sync bookings: currentUserNIC is null or empty");
+            return;
+        }
+
+        android.util.Log.d("Dashboard", "Starting server sync for user: " + currentUserNIC);
 
         com.evcharging.mobile.api.ApiService api = com.evcharging.mobile.api.ApiClient.getClient(this).create(com.evcharging.mobile.api.ApiService.class);
-        
+
         // Sync upcoming bookings
         retrofit2.Call<java.util.List<com.evcharging.mobile.models.Booking>> upcomingCall = api.getUpcomingBookings(currentUserNIC);
         upcomingCall.enqueue(new retrofit2.Callback<java.util.List<com.evcharging.mobile.models.Booking>>() {
             @Override
             public void onResponse(retrofit2.Call<java.util.List<com.evcharging.mobile.models.Booking>> call, retrofit2.Response<java.util.List<com.evcharging.mobile.models.Booking>> response) {
+                android.util.Log.d("Dashboard", "Server response code: " + response.code());
                 if (response.isSuccessful() && response.body() != null) {
                     java.util.List<com.evcharging.mobile.models.Booking> serverBookings = response.body();
                     android.util.Log.d("Dashboard", "Server returned " + serverBookings.size() + " upcoming bookings");
+
+                    // Log each booking details
+                    for (com.evcharging.mobile.models.Booking b : serverBookings) {
+                        android.util.Log.d("Dashboard", "Server booking: ID=" + b.getId() +
+                            ", Status=" + b.getStatus() +
+                            ", DateTime=" + b.getReservationDateTime() +
+                            ", Station=" + b.getStationName());
+                    }
+
                     new Thread(() -> {
                         for (com.evcharging.mobile.models.Booking b : serverBookings) {
                             try {
@@ -87,7 +102,7 @@ public class EVOwnerDashboardActivity extends AppCompatActivity {
                                 bookingDao.upsert(b);
                                 // Clean up any duplicates
                                 if (b.getReservationDateTime() != null) {
-                                    bookingDao.deleteDuplicateBookings(currentUserNIC, b.getId(), 
+                                    bookingDao.deleteDuplicateBookings(currentUserNIC, b.getId(),
                                         b.getChargingStationId(), b.getReservationDateTime().getTime());
                                 }
                             } catch (Exception e) {
@@ -102,12 +117,25 @@ public class EVOwnerDashboardActivity extends AppCompatActivity {
                     }).start();
                 } else {
                     android.util.Log.w("Dashboard", "Server response failed or empty. Code: " + response.code());
+                    if (response.errorBody() != null) {
+                        try {
+                            android.util.Log.w("Dashboard", "Error body: " + response.errorBody().string());
+                        } catch (Exception e) {
+                            android.util.Log.w("Dashboard", "Could not read error body");
+                        }
+                    }
+                    // Still load local bookings even if server fails
+                    runOnUiThread(() -> {
+                        loadUpcomingBookings();
+                        updateBookingCounts();
+                    });
                 }
             }
 
             @Override
             public void onFailure(retrofit2.Call<java.util.List<com.evcharging.mobile.models.Booking>> call, Throwable t) {
                 android.util.Log.e("Dashboard", "Failed to sync upcoming bookings: " + t.getMessage());
+                // Still load local bookings even if network fails
                 runOnUiThread(() -> {
                     loadUpcomingBookings();
                     updateBookingCounts();
@@ -122,6 +150,7 @@ public class EVOwnerDashboardActivity extends AppCompatActivity {
             public void onResponse(retrofit2.Call<java.util.List<com.evcharging.mobile.models.Booking>> call, retrofit2.Response<java.util.List<com.evcharging.mobile.models.Booking>> response) {
                 if (response.isSuccessful() && response.body() != null) {
                     java.util.List<com.evcharging.mobile.models.Booking> historyBookings = response.body();
+                    android.util.Log.d("Dashboard", "Server returned " + historyBookings.size() + " history bookings");
                     new Thread(() -> {
                         for (com.evcharging.mobile.models.Booking b : historyBookings) {
                             try {
@@ -136,6 +165,7 @@ public class EVOwnerDashboardActivity extends AppCompatActivity {
 
             @Override
             public void onFailure(retrofit2.Call<java.util.List<com.evcharging.mobile.models.Booking>> call, Throwable t) {
+                android.util.Log.w("Dashboard", "Failed to sync booking history: " + t.getMessage());
                 // Silently fail for history sync
             }
         });
@@ -210,12 +240,28 @@ public class EVOwnerDashboardActivity extends AppCompatActivity {
             // Debug: Check total bookings first
             List<Booking> allBookings = bookingDao.getBookingsByNIC(currentUserNIC);
             android.util.Log.d("Dashboard", "Total bookings for user: " + allBookings.size());
-            
+
+            // Debug: Log all bookings with details
+            for (Booking booking : allBookings) {
+                android.util.Log.d("Dashboard", "Booking: ID=" + booking.getId() +
+                    ", Status=" + booking.getStatus() +
+                    ", DateTime=" + booking.getReservationDateTime() +
+                    ", Timestamp=" + (booking.getReservationDateTime() != null ? booking.getReservationDateTime().getTime() : "null") +
+                    ", CurrentTime=" + System.currentTimeMillis() +
+                    ", IsUpcoming=" + booking.isUpcoming());
+            }
+
             List<Booking> upcomingBookings = bookingDao.getUpcomingBookings(currentUserNIC);
             android.util.Log.d("Dashboard", "Upcoming bookings found: " + upcomingBookings.size());
-            
+
+            // Debug: Log upcoming bookings
+            for (Booking booking : upcomingBookings) {
+                android.util.Log.d("Dashboard", "Upcoming: " + booking.getId() + " - " + booking.getStatus() + " - " + booking.getReservationDateTime());
+            }
+
             runOnUiThread(() -> {
                 bookingAdapter.setBookings(upcomingBookings);
+                android.util.Log.d("Dashboard", "Adapter updated with " + upcomingBookings.size() + " bookings");
             });
         }).start();
     }

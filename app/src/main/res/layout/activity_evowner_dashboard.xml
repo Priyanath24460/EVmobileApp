@@ -153,7 +153,7 @@
                             android:layout_width="32dp"
                             android:layout_height="32dp"
                             android:src="@drawable/ic_pending"
-                            android:tint="@color/colorWarning"
+                            app:tint="@color/colorWarning"
                             android:layout_marginBottom="8dp" />
 
                         <TextView
@@ -199,7 +199,7 @@
                             android:layout_width="32dp"
                             android:layout_height="32dp"
                             android:src="@drawable/ic_approved"
-                            android:tint="@color/colorSuccess"
+                            app:tint="@color/colorSuccess"
                             android:layout_marginBottom="8dp" />
 
                         <TextView

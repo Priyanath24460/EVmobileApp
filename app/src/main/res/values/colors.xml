@@ -31,6 +31,12 @@
     <color name="green_accent">#8BC34A</color>
     <color name="green_muted">#A5D6A7</color>
 
+    <!-- Modern Green Gradient Colors -->
+    <color name="green_gradient_start">#4CAF50</color>
+    <color name="green_gradient_end">#81C784</color>
+    <color name="green_vibrant">#00C853</color>
+    <color name="green_soft">#C8E6C9</color>
+
     <!-- Aliases for layout compatibility -->
     <color name="primary_color">@color/colorPrimary</color>
     <color name="background_light">@color/colorBackground</color>

@@ -112,26 +112,94 @@ public class ProfileActivity extends AppCompatActivity {
     }
 
     private void toggleAccountStatus() {
-        new Thread(() -> {
-            User user = userDao.getUserByNIC(currentUserNIC);
-            if (user != null) {
-                user.setActive(!user.isActive());
-                userDao.update(user);
+        // Show confirmation dialog
+        androidx.appcompat.app.AlertDialog.Builder builder = new androidx.appcompat.app.AlertDialog.Builder(this);
+        builder.setTitle("Confirm Account Action");
+        builder.setMessage("Are you sure you want to " + (btnDeactivate.getText().toString().contains("Deactivate") ? "deactivate" : "activate") + " your account?");
+        builder.setPositiveButton("Yes", (dialog, which) -> performAccountStatusChange());
+        builder.setNegativeButton("Cancel", null);
+        builder.show();
+    }
 
-                runOnUiThread(() -> {
-                    String message = user.isActive() ? "Account activated" : "Account deactivated";
-                    Toast.makeText(this, message, Toast.LENGTH_SHORT).show();
+    private void performAccountStatusChange() {
+        boolean newStatus = !btnDeactivate.getText().toString().contains("Deactivate");
 
-                    if (!user.isActive()) {
-                        // Logout if account is deactivated
-                        prefs.clearUserData();
-                        startActivity(new Intent(this, LoginActivity.class));
-                        finish();
-                    } else {
-                        loadUserProfile();
+        // Debug: Log what we're trying to do
+        android.util.Log.d("ProfileActivity", "Attempting to change status for NIC: " + currentUserNIC + " to: " + newStatus);
+
+        // Call server API to update status
+        com.evcharging.mobile.api.ApiService api = com.evcharging.mobile.api.ApiClient.getClient(this).create(com.evcharging.mobile.api.ApiService.class);
+        String statusString = newStatus ? "true" : "false";
+        okhttp3.RequestBody requestBody = okhttp3.RequestBody.create(okhttp3.MediaType.parse("application/json"), statusString);
+        retrofit2.Call<okhttp3.ResponseBody> call = api.updateEVOwnerStatus(currentUserNIC, requestBody);
+
+        // Debug: Log the API call details
+        android.util.Log.d("ProfileActivity", "Making API call to update status with body: " + statusString);
+
+        call.enqueue(new retrofit2.Callback<okhttp3.ResponseBody>() {
+            @Override
+            public void onResponse(retrofit2.Call<okhttp3.ResponseBody> call, retrofit2.Response<okhttp3.ResponseBody> response) {
+                if (response.isSuccessful()) {
+                    // Get the response body as string
+                    String responseMessage = "Account status updated successfully";
+                    try {
+                        if (response.body() != null) {
+                            responseMessage = response.body().string();
+                        }
+                    } catch (Exception e) {
+                        android.util.Log.w("ProfileActivity", "Could not read response body: " + e.getMessage());
                     }
-                });
+                    // Update local database
+                    new Thread(() -> {
+                        User user = userDao.getUserByNIC(currentUserNIC);
+                        if (user != null) {
+                            user.setActive(newStatus);
+                            userDao.update(user);
+                        }
+
+                        runOnUiThread(() -> {
+                            String message = newStatus ? "Account activated successfully" : "Account deactivated successfully";
+                            Toast.makeText(ProfileActivity.this, message, Toast.LENGTH_SHORT).show();
+
+                            if (!newStatus) {
+                                // Logout if account is deactivated
+                                prefs.clearUserData();
+                                Toast.makeText(ProfileActivity.this, "You have been logged out", Toast.LENGTH_SHORT).show();
+                                startActivity(new Intent(ProfileActivity.this, LoginActivity.class));
+                                finish();
+                            } else {
+                                loadUserProfile();
+                            }
+                        });
+                    }).start();
+                } else {
+                    // Debug: Log the error response
+                    String errorMsg = "Failed to update account status";
+                    if (response.errorBody() != null) {
+                        try {
+                            errorMsg += ": " + response.errorBody().string();
+                        } catch (Exception e) {
+                            errorMsg += " (could not read error body)";
+                        }
+                    }
+                    errorMsg += " (Code: " + response.code() + ")";
+
+                    String finalErrorMsg = errorMsg;
+                    runOnUiThread(() -> Toast.makeText(ProfileActivity.this, finalErrorMsg, Toast.LENGTH_LONG).show());
+                }
             }
-        }).start();
+
+            @Override
+            public void onFailure(retrofit2.Call<okhttp3.ResponseBody> call, Throwable t) {
+                // Debug: Log the actual network error
+                String errorMsg = "Network error: " + t.getClass().getSimpleName() + " - " + t.getMessage();
+                if (t.getCause() != null) {
+                    errorMsg += " (Cause: " + t.getCause().getMessage() + ")";
+                }
+                
+                String finalErrorMsg = errorMsg;
+                runOnUiThread(() -> Toast.makeText(ProfileActivity.this, finalErrorMsg, Toast.LENGTH_LONG).show());
+            }
+        });
     }
 }

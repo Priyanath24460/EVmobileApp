@@ -35,7 +35,7 @@
                 android:layout_centerVertical="true"
                 android:layout_marginEnd="16dp"
                 android:src="@drawable/ic_profile"
-                android:tint="#2196F3" />
+                app:tint="#2196F3" />
 
         </RelativeLayout>
 

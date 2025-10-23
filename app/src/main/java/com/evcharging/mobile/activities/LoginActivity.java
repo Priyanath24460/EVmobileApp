@@ -4,7 +4,9 @@ import androidx.appcompat.app.AppCompatActivity;
 import android.content.Intent;
 import android.os.Bundle;
 import android.widget.Button;
+import android.widget.CheckBox;
 import android.widget.RadioGroup;
+import android.widget.TextView;
 import android.widget.Toast;
 import com.evcharging.mobile.R;
 import com.evcharging.mobile.database.AppDatabase;
@@ -17,7 +19,9 @@ public class LoginActivity extends AppCompatActivity {
 
     private TextInputEditText etNIC, etPassword;
     private RadioGroup rgUserType;
-    private Button btnLogin, btnRegister;
+    private Button btnLogin;
+    private TextView btnRegister, tvForgotPassword;
+    private CheckBox cbRememberMe;
     private UserDao userDao;
     private SharedPreferencesHelper prefs;
 
@@ -37,6 +41,8 @@ public class LoginActivity extends AppCompatActivity {
         rgUserType = findViewById(R.id.rgUserType);
         btnLogin = findViewById(R.id.btnLogin);
         btnRegister = findViewById(R.id.btnRegister);
+        tvForgotPassword = findViewById(R.id.tvForgotPassword);
+        cbRememberMe = findViewById(R.id.cbRememberMe);
 
         prefs = new SharedPreferencesHelper(this);
     }
@@ -49,6 +55,11 @@ public class LoginActivity extends AppCompatActivity {
     private void setupClickListeners() {
         btnLogin.setOnClickListener(v -> attemptLogin());
         btnRegister.setOnClickListener(v -> navigateToRegistration());
+        tvForgotPassword.setOnClickListener(v -> showForgotPassword());
+    }
+
+    private void showForgotPassword() {
+        Toast.makeText(this, "Forgot password feature coming soon", Toast.LENGTH_SHORT).show();
     }
 
     private void attemptLogin() {
@@ -77,76 +88,93 @@ public class LoginActivity extends AppCompatActivity {
     }
 
     private void loginEVOwner(String nic, String password) {
-        new Thread(() -> {
-            try {
-                // Fetch by NIC first (more robust) then compare password in Java
-                User user = userDao.getUserByNIC(nic);
+        // Always check server first for current account status
+        com.evcharging.mobile.api.ApiService api = com.evcharging.mobile.api.ApiClient.getClient(this).create(com.evcharging.mobile.api.ApiService.class);
+        retrofit2.Call<User> call = api.getEVOwner(nic);
+        call.enqueue(new retrofit2.Callback<User>() {
+            @Override
+            public void onResponse(retrofit2.Call<User> call, retrofit2.Response<User> response) {
+                if (response.isSuccessful() && response.body() != null) {
+                    User serverUser = response.body();
 
-                if (user == null) {
-                    // Try to fetch from server and import
-                    runOnUiThread(() -> Toast.makeText(this, "User not found locally. Trying server...", Toast.LENGTH_SHORT).show());
+                    // Check if account is active
+                    if (!serverUser.isActive()) {
+                        runOnUiThread(() -> Toast.makeText(LoginActivity.this, "Account is deactivated. Please contact support.", Toast.LENGTH_LONG).show());
+                        return;
+                    }
 
-                    com.evcharging.mobile.api.ApiService api = com.evcharging.mobile.api.ApiClient.getClient(this).create(com.evcharging.mobile.api.ApiService.class);
-                    retrofit2.Call<User> call = api.getEVOwner(nic);
-                    call.enqueue(new retrofit2.Callback<User>() {
-                        @Override
-                        public void onResponse(retrofit2.Call<User> call, retrofit2.Response<User> response) {
-                            if (response.isSuccessful() && response.body() != null) {
-                                User serverUser = response.body();
-                                // Save local copy with entered password so local login works
+                    // Account is active, now check local credentials
+                    new Thread(() -> {
+                        try {
+                            User localUser = userDao.getUserByNIC(nic);
+
+                            runOnUiThread(() -> {
+                                // For server-verified users, we accept the password they entered
+                                // Update local storage with server data
                                 serverUser.setPassword(password);
                                 new Thread(() -> userDao.insert(serverUser)).start();
 
-                                // Auto-login
+                                // Login successful
                                 prefs.setLoggedIn(true);
                                 prefs.setLoggedInUserNIC(serverUser.getNic());
                                 prefs.setUserType("EVOwner");
 
-                                runOnUiThread(() -> {
-                                    Toast.makeText(LoginActivity.this, "Imported account from server. Logged in.", Toast.LENGTH_SHORT).show();
-                                    startActivity(new Intent(LoginActivity.this, EVOwnerDashboardActivity.class));
-                                    finish();
-                                });
-                            } else {
-                                runOnUiThread(() -> Toast.makeText(LoginActivity.this, "User not found on server (" + response.code() + ")", Toast.LENGTH_LONG).show());
-                            }
+                                Toast.makeText(LoginActivity.this, "Login successful!", Toast.LENGTH_SHORT).show();
+                                startActivity(new Intent(LoginActivity.this, EVOwnerDashboardActivity.class));
+                                finish();
+                            });
+                        } catch (Exception e) {
+                            runOnUiThread(() -> Toast.makeText(LoginActivity.this, "Login error: " + e.getMessage(), Toast.LENGTH_LONG).show());
                         }
+                    }).start();
 
-                        @Override
-                        public void onFailure(retrofit2.Call<User> call, Throwable t) {
-                            runOnUiThread(() -> Toast.makeText(LoginActivity.this, "Server fetch failed: " + t.getMessage(), Toast.LENGTH_LONG).show());
-                        }
-                    });
-
-                    return;
+                } else {
+                    runOnUiThread(() -> Toast.makeText(LoginActivity.this, "User not found on server (" + response.code() + ")", Toast.LENGTH_LONG).show());
                 }
-
-                runOnUiThread(() -> {
-                    if (!user.isActive()) {
-                        Toast.makeText(this, "Account is inactive. Contact support.", Toast.LENGTH_SHORT).show();
-                        return;
-                    }
-
-                    String stored = user.getPassword();
-                    if (stored == null) stored = "";
-
-                    if (stored.trim().equals(password.trim())) {
-                        // Login successful
-                        prefs.setLoggedIn(true);
-                        prefs.setLoggedInUserNIC(nic);
-                        prefs.setUserType("EVOwner");
-
-                        Toast.makeText(this, "Login successful!", Toast.LENGTH_SHORT).show();
-                        startActivity(new Intent(this, EVOwnerDashboardActivity.class));
-                        finish();
-                    } else {
-                        Toast.makeText(this, "Invalid credentials. If you registered via the server, try registering again or use 'Forgot password' if available.", Toast.LENGTH_LONG).show();
-                    }
-                });
-            } catch (Exception e) {
-                runOnUiThread(() -> Toast.makeText(this, "Login error: " + e.getMessage(), Toast.LENGTH_LONG).show());
             }
-        }).start();
+
+            @Override
+            public void onFailure(retrofit2.Call<User> call, Throwable t) {
+                // If server is unavailable, fall back to local login with warning
+                runOnUiThread(() -> Toast.makeText(LoginActivity.this, "Server unavailable. Using cached login...", Toast.LENGTH_SHORT).show());
+
+                new Thread(() -> {
+                    try {
+                        User user = userDao.getUserByNIC(nic);
+
+                        if (user == null) {
+                            runOnUiThread(() -> Toast.makeText(LoginActivity.this, "No local account found and server unavailable", Toast.LENGTH_LONG).show());
+                            return;
+                        }
+
+                        runOnUiThread(() -> {
+                            if (!user.isActive()) {
+                                Toast.makeText(LoginActivity.this, "Account is deactivated. Please contact support.", Toast.LENGTH_SHORT).show();
+                                return;
+                            }
+
+                            String stored = user.getPassword();
+                            if (stored == null) stored = "";
+
+                            if (stored.trim().equals(password.trim())) {
+                                // Login successful (offline mode)
+                                prefs.setLoggedIn(true);
+                                prefs.setLoggedInUserNIC(nic);
+                                prefs.setUserType("EVOwner");
+
+                                Toast.makeText(LoginActivity.this, "Login successful! (Offline Mode)", Toast.LENGTH_SHORT).show();
+                                startActivity(new Intent(LoginActivity.this, EVOwnerDashboardActivity.class));
+                                finish();
+                            } else {
+                                Toast.makeText(LoginActivity.this, "Invalid credentials", Toast.LENGTH_LONG).show();
+                            }
+                        });
+                    } catch (Exception e) {
+                        runOnUiThread(() -> Toast.makeText(LoginActivity.this, "Login error: " + e.getMessage(), Toast.LENGTH_LONG).show());
+                    }
+                }).start();
+            }
+        });
     }
 
     private void loginStationOperator(String username, String password) {
