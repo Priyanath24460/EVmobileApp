@@ -378,7 +378,7 @@ public class EVOwnerDashboardActivity extends AppCompatActivity {
             if (booking.canBeCancelled()) {
                 cancelBooking(booking);
             } else {
-                Toast.makeText(this, "Cannot cancel booking. Must be at least 12 hours before reservation.", Toast.LENGTH_LONG).show();
+                Toast.makeText(this, "Cannot cancel booking. Only Pending and Approved bookings can be cancelled.", Toast.LENGTH_LONG).show();
             }
         });
 

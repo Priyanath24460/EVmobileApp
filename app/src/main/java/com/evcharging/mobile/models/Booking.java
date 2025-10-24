@@ -117,11 +117,8 @@ public class Booking implements Serializable {
     }
 
     public boolean canBeCancelled() {
-        if (reservationDateTime == null) return false;
-
-        long timeDifference = reservationDateTime.getTime() - new Date().getTime();
-        long hoursDifference = timeDifference / (1000 * 60 * 60);
-
-        return hoursDifference >= 12 && (status.equals("Pending") || status.equals("Approved"));
+        // Allow cancellation at any time for Pending and Approved bookings
+        // No time restriction as per user requirement
+        return (status.equals("Pending") || status.equals("Approved"));
     }
 }
