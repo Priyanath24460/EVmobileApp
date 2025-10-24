@@ -23,8 +23,9 @@ import com.google.zxing.integration.android.IntentResult;
 
 public class OperatorDashboardActivity extends AppCompatActivity {
 
-    private TextView tvWelcome, tvOperatorInfo;
+    private TextView tvWelcome, tvOperatorInfo, tvScannedCount, tvActiveCount;
     private Button btnScanQR, btnManualVerify, btnViewActiveBookings, btnProfile, btnLogout;
+    private com.google.android.material.floatingactionbutton.FloatingActionButton fabScanQR;
     
     private SharedPreferencesHelper prefs;
     private User currentOperator;
@@ -46,11 +47,14 @@ public class OperatorDashboardActivity extends AppCompatActivity {
     private void initializeViews() {
         tvWelcome = findViewById(R.id.tvWelcome);
         tvOperatorInfo = findViewById(R.id.tvOperatorInfo);
+        tvScannedCount = findViewById(R.id.tvScannedCount);
+        tvActiveCount = findViewById(R.id.tvActiveCount);
         btnScanQR = findViewById(R.id.btnScanQR);
         btnManualVerify = findViewById(R.id.btnManualVerify);
         btnViewActiveBookings = findViewById(R.id.btnViewActiveBookings);
         btnProfile = findViewById(R.id.btnProfile);
         btnLogout = findViewById(R.id.btnLogout);
+        fabScanQR = findViewById(R.id.fabScanQR);
 
         prefs = new SharedPreferencesHelper(this);
         apiService = ApiClient.getClient(this).create(ApiService.class);
@@ -73,16 +77,21 @@ public class OperatorDashboardActivity extends AppCompatActivity {
     private void updateUI() {
         if (currentOperator != null) {
             tvWelcome.setText("Welcome, " + currentOperator.getFullName());
-            tvOperatorInfo.setText("Operator ID: " + currentOperator.getNic());
+            tvOperatorInfo.setText("Station ID: " + currentOperator.getNic());
         }
+        
+        // Update stats (demo values for now)
+        tvScannedCount.setText("0");
+        tvActiveCount.setText("0");
     }
 
     private void setupClickListeners() {
-        btnScanQR.setOnClickListener(v -> startQRScanner());
+        btnScanQR.setOnClickListener(v -> startNewQRScanner());
         btnManualVerify.setOnClickListener(v -> startManualVerification());
         btnViewActiveBookings.setOnClickListener(v -> viewActiveBookings());
         btnProfile.setOnClickListener(v -> viewProfile());
         btnLogout.setOnClickListener(v -> logout());
+        fabScanQR.setOnClickListener(v -> startNewQRScanner());
     }
 
     private void checkCameraPermission() {
@@ -103,6 +112,16 @@ public class OperatorDashboardActivity extends AppCompatActivity {
             } else {
                 Toast.makeText(this, "Camera permission required for QR scanning", Toast.LENGTH_LONG).show();
             }
+        }
+    }
+
+    private void startNewQRScanner() {
+        if (ContextCompat.checkSelfPermission(this, Manifest.permission.CAMERA) 
+                == PackageManager.PERMISSION_GRANTED) {
+            Intent intent = new Intent(this, OperatorQRScannerActivity.class);
+            startActivity(intent);
+        } else {
+            checkCameraPermission();
         }
     }
 
@@ -153,15 +172,12 @@ public class OperatorDashboardActivity extends AppCompatActivity {
     }
 
     private void viewActiveBookings() {
-        // TODO: Create ActiveBookingsActivity
-        Toast.makeText(this, "Active Bookings feature coming soon", Toast.LENGTH_SHORT).show();
-        // Intent intent = new Intent(this, ActiveBookingsActivity.class);
-        // intent.putExtra("operator_id", currentOperator.getNic());
-        // startActivity(intent);
+        Intent intent = new Intent(this, OperatorBookingsActivity.class);
+        startActivity(intent);
     }
 
     private void viewProfile() {
-        Intent intent = new Intent(this, ProfileActivity.class);
+        Intent intent = new Intent(this, OperatorProfileActivity.class);
         startActivity(intent);
     }
 

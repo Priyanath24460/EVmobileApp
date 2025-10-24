@@ -44,4 +44,17 @@
     <color name="border_color">@color/colorDivider</color>
     <color name="primary_text">@color/colorTextPrimary</color>
     <color name="secondary_text">@color/colorTextSecondary</color>
+    
+    <!-- Status Colors -->
+    <color name="status_pending">#FF9800</color>
+    <color name="status_approved">#4CAF50</color>
+    <color name="status_started">#9C27B0</color>
+    <color name="status_completed">#2196F3</color>
+    <color name="status_cancelled">#F44336</color>
+    
+    <!-- Button and UI Colors -->
+    <color name="primary_green">#4CAF50</color>
+    <color name="secondary_green">#81C784</color>
+    <color name="text_primary">#212121</color>
+    <color name="text_secondary">#757575</color>
 </resources>

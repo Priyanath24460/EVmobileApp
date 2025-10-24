@@ -48,14 +48,24 @@ public class EVOwnerDashboardActivity extends AppCompatActivity {
         setupDatabase();
         loadUserData();
         setupClickListeners();
-        // Clean up any duplicate bookings first
-        new Thread(() -> {
-            bookingDao.cleanupAllDuplicates(currentUserNIC);
-            runOnUiThread(() -> {
-                loadUpcomingBookings();
-                updateBookingCounts();
-            });
-        }).start();
+        // Clean up any duplicate bookings first (only if currentUserNIC is valid)
+        if (currentUserNIC != null && !currentUserNIC.isEmpty()) {
+            new Thread(() -> {
+                try {
+                    bookingDao.cleanupAllDuplicates(currentUserNIC);
+                    runOnUiThread(() -> {
+                        loadUpcomingBookings();
+                        updateBookingCounts();
+                    });
+                } catch (Exception e) {
+                    android.util.Log.e("Dashboard", "Error cleaning up bookings: " + e.getMessage());
+                    runOnUiThread(() -> {
+                        loadUpcomingBookings();
+                        updateBookingCounts();
+                    });
+                }
+            }).start();
+        }
         // Attempt to sync bookings from server on first open
         syncBookingsFromServer();
     }
@@ -189,6 +199,14 @@ public class EVOwnerDashboardActivity extends AppCompatActivity {
 
         prefs = new SharedPreferencesHelper(this);
         currentUserNIC = prefs.getLoggedInUserNIC();
+
+        // Add null check for currentUserNIC
+        if (currentUserNIC == null || currentUserNIC.isEmpty()) {
+            Toast.makeText(this, "Error: User session not found. Please login again.", Toast.LENGTH_LONG).show();
+            startActivity(new Intent(this, LoginActivity.class));
+            finish();
+            return;
+        }
 
         // Setup RecyclerView
         rvUpcomingBookings.setLayoutManager(new LinearLayoutManager(this));

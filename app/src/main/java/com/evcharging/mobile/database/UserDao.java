@@ -34,4 +34,14 @@ public interface UserDao {
 
     @Query("SELECT COUNT(*) FROM users WHERE nic = :nic")
     int userExists(String nic);
+
+    // Upsert operation - insert if new, update if exists
+    default void upsert(User user) {
+        User existing = getUserByNIC(user.getNic());
+        if (existing == null) {
+            insert(user);
+        } else {
+            update(user);
+        }
+    }
 }

@@ -42,7 +42,7 @@ public class Booking implements Serializable {
     private int durationMinutes;
 
     @SerializedName("status")
-    private String status; // Pending, Approved, Completed, Cancelled
+    private String status; // Pending, Approved, Started, Completed, Cancelled
 
     @SerializedName("qrCodeData")
     private String qrCodeData;

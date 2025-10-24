@@ -28,29 +28,37 @@ public interface BookingDao {
     @Query("SELECT * FROM bookings WHERE id = :id")
     Booking getBookingById(String id);
 
-    @Query("SELECT * FROM bookings WHERE evOwnerNIC = :nic AND status IN ('Pending', 'Approved') AND reservationDateTime >= :currentTime ORDER BY reservationDateTime ASC")
+    @Query("SELECT * FROM bookings WHERE evOwnerNIC = :nic AND status IN ('Pending', 'Approved', 'Started') AND reservationDateTime > :currentTime ORDER BY reservationDateTime ASC")
     List<Booking> getUpcomingBookings(String nic, long currentTime);
 
     @Query("SELECT * FROM bookings WHERE evOwnerNIC = :nic AND status IN ('Completed', 'Cancelled') ORDER BY reservationDateTime DESC")
     List<Booking> getPastBookings(String nic);
 
-    @Query("SELECT COUNT(*) FROM bookings WHERE evOwnerNIC = :nic AND status = 'Pending' AND reservationDateTime >= :currentTime")
+    @Query("SELECT COUNT(*) FROM bookings WHERE evOwnerNIC = :nic AND status = 'Pending' AND reservationDateTime > :currentTime")
     int getPendingBookingCount(String nic, long currentTime);
 
-    @Query("SELECT COUNT(*) FROM bookings WHERE evOwnerNIC = :nic AND status = 'Approved' AND reservationDateTime >= :currentTime")
+    @Query("SELECT COUNT(*) FROM bookings WHERE evOwnerNIC = :nic AND status = 'Approved' AND reservationDateTime > :currentTime")
     int getApprovedBookingCount(String nic, long currentTime);
 
-    // Convenience methods with current time
+    @Query("SELECT COUNT(*) FROM bookings WHERE evOwnerNIC = :nic AND status = 'Started' AND reservationDateTime > :currentTime")
+    int getStartedBookingCount(String nic, long currentTime);
+
+    // Convenience methods with current time (but subtract a small buffer to include recent bookings)
     default List<Booking> getUpcomingBookings(String nic) {
-        return getUpcomingBookings(nic, System.currentTimeMillis());
+        // Use current time minus 30 minutes to include recently started bookings
+        return getUpcomingBookings(nic, System.currentTimeMillis() - (30 * 60 * 1000));
     }
 
     default int getPendingBookingCount(String nic) {
-        return getPendingBookingCount(nic, System.currentTimeMillis());
+        return getPendingBookingCount(nic, System.currentTimeMillis() - (30 * 60 * 1000));
     }
 
     default int getApprovedBookingCount(String nic) {
-        return getApprovedBookingCount(nic, System.currentTimeMillis());
+        return getApprovedBookingCount(nic, System.currentTimeMillis() - (30 * 60 * 1000));
+    }
+
+    default int getStartedBookingCount(String nic) {
+        return getStartedBookingCount(nic, System.currentTimeMillis() - (30 * 60 * 1000));
     }
 
     @Query("DELETE FROM bookings WHERE id = :id")

@@ -108,10 +108,29 @@ public interface ApiService {
     @POST("api/Bookings/{id}/verify")
     Call<BookingVerificationResponse> verifyBooking(@Path("id") String id, @Body QRVerificationRequest request);
 
+    @PUT("api/Bookings/{id}/start")
+    Call<Booking> startCharging(@Path("id") String id);
+
     @PUT("api/Bookings/{id}/complete")
     Call<Booking> completeBooking(@Path("id") String id);
 
     // Authentication Endpoints (for Station Operators)
     @POST("api/users/authenticate")
     Call<AuthResponse> authenticateUser(@Body AuthRequest request);
+
+    // Station Operator Credentials Update
+    @PUT("api/users/{username}/update-credentials")
+    Call<okhttp3.ResponseBody> updateOperatorCredentials(@Path("username") String username, @Body okhttp3.RequestBody credentials);
+
+    // Station Operator Bookings
+    @GET("api/Bookings/operator/{operatorUsername}")
+    Call<List<Booking>> getOperatorBookings(@Path("operatorUsername") String operatorUsername);
+
+    // QR Code and Booking Verification
+    @POST("api/Bookings/{id}/verify-qr")
+    Call<BookingVerificationResponse> verifyBookingQR(@Path("id") String bookingId, @Body QRVerificationRequest request);
+
+    // Booking Status Updates
+    @PATCH("api/Bookings/{id}/status")
+    Call<Booking> updateBookingStatus(@Path("id") String bookingId, @Body StatusUpdateRequest statusUpdate);
 }

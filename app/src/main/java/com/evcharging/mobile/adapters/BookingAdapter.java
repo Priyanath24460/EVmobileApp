@@ -39,7 +39,7 @@ public class BookingAdapter extends RecyclerView.Adapter<BookingAdapter.BookingV
     }
 
     public void setBookings(List<Booking> bookings) {
-        this.bookings = bookings;
+        this.bookings = bookings != null ? bookings : new java.util.ArrayList<>();
         notifyDataSetChanged();
     }
 
@@ -63,8 +63,10 @@ public class BookingAdapter extends RecyclerView.Adapter<BookingAdapter.BookingV
 
     @Override
     public void onBindViewHolder(BookingViewHolder holder, int position) {
-        Booking booking = bookings.get(position);
-        holder.bind(booking);
+        if (bookings != null && position < bookings.size()) {
+            Booking booking = bookings.get(position);
+            holder.bind(booking);
+        }
     }
 
     @Override

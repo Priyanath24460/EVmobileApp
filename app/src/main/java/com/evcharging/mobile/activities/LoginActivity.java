@@ -110,9 +110,15 @@ public class LoginActivity extends AppCompatActivity {
 
                             runOnUiThread(() -> {
                                 // For server-verified users, we accept the password they entered
-                                // Update local storage with server data
+                                // Update local storage with server data using upsert
                                 serverUser.setPassword(password);
-                                new Thread(() -> userDao.insert(serverUser)).start();
+                                new Thread(() -> {
+                                    try {
+                                        userDao.upsert(serverUser);
+                                    } catch (Exception e) {
+                                        android.util.Log.e("LoginActivity", "Error saving user data: " + e.getMessage());
+                                    }
+                                }).start();
 
                                 // Login successful
                                 prefs.setLoggedIn(true);
@@ -120,8 +126,14 @@ public class LoginActivity extends AppCompatActivity {
                                 prefs.setUserType("EVOwner");
 
                                 Toast.makeText(LoginActivity.this, "Login successful!", Toast.LENGTH_SHORT).show();
-                                startActivity(new Intent(LoginActivity.this, EVOwnerDashboardActivity.class));
-                                finish();
+                                
+                                try {
+                                    startActivity(new Intent(LoginActivity.this, EVOwnerDashboardActivity.class));
+                                    finish();
+                                } catch (Exception e) {
+                                    android.util.Log.e("LoginActivity", "Error starting dashboard: " + e.getMessage());
+                                    Toast.makeText(LoginActivity.this, "Error opening dashboard: " + e.getMessage(), Toast.LENGTH_LONG).show();
+                                }
                             });
                         } catch (Exception e) {
                             runOnUiThread(() -> Toast.makeText(LoginActivity.this, "Login error: " + e.getMessage(), Toast.LENGTH_LONG).show());
@@ -163,8 +175,14 @@ public class LoginActivity extends AppCompatActivity {
                                 prefs.setUserType("EVOwner");
 
                                 Toast.makeText(LoginActivity.this, "Login successful! (Offline Mode)", Toast.LENGTH_SHORT).show();
-                                startActivity(new Intent(LoginActivity.this, EVOwnerDashboardActivity.class));
-                                finish();
+                                
+                                try {
+                                    startActivity(new Intent(LoginActivity.this, EVOwnerDashboardActivity.class));
+                                    finish();
+                                } catch (Exception e) {
+                                    android.util.Log.e("LoginActivity", "Error starting dashboard (offline): " + e.getMessage());
+                                    Toast.makeText(LoginActivity.this, "Error opening dashboard: " + e.getMessage(), Toast.LENGTH_LONG).show();
+                                }
                             } else {
                                 Toast.makeText(LoginActivity.this, "Invalid credentials", Toast.LENGTH_LONG).show();
                             }

@@ -1,30 +1,65 @@
 <?xml version="1.0" encoding="utf-8"?>
-<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<androidx.coordinatorlayout.widget.CoordinatorLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:orientation="vertical"
-    android:padding="16dp"
-    android:background="@color/background_light">
+    android:background="@color/colorBackground"
+    tools:context=".activities.OperatorDashboardActivity">
 
-    <!-- Header -->
-    <TextView
+    <!-- App Bar -->
+    <com.google.android.material.appbar.AppBarLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="Station Operator Dashboard"
-        android:textSize="24sp"
-        android:textStyle="bold"
-        android:textAlignment="center"
-        android:padding="16dp"
-        android:textColor="@color/primary_color" />
+        android:background="@android:color/transparent"
+        app:elevation="0dp">
 
-    <!-- Welcome Section -->
-    <com.google.android.material.card.MaterialCardView
+        <com.google.android.material.appbar.MaterialToolbar
+            android:id="@+id/toolbar"
+            android:layout_width="match_parent"
+            android:layout_height="?attr/actionBarSize"
+            android:background="@color/colorPrimary"
+            app:title="Station Operator"
+            app:titleTextColor="@android:color/white">
+
+            <androidx.cardview.widget.CardView
+                android:id="@+id/cvProfileAvatar"
+                android:layout_width="40dp"
+                android:layout_height="40dp"
+                android:layout_gravity="end"
+                android:layout_marginEnd="16dp"
+                app:cardCornerRadius="20dp"
+                app:cardElevation="4dp">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:background="@drawable/gradient_primary"
+                    android:gravity="center"
+                    android:orientation="vertical">
+
+                    <TextView
+                        android:id="@+id/tvToolbarAvatar"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="S"
+                        android:textColor="@android:color/white"
+                        android:textSize="18sp"
+                        android:textStyle="bold" />
+
+                </LinearLayout>
+
+            </androidx.cardview.widget.CardView>
+
+        </com.google.android.material.appbar.MaterialToolbar>
+
+    </com.google.android.material.appbar.AppBarLayout>
+
+    <!-- Main Content -->
+    <androidx.core.widget.NestedScrollView
         android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_marginBottom="16dp"
-        app:cardElevation="4dp"
-        app:cardCornerRadius="8dp">
+        android:layout_height="match_parent"
+        app:layout_behavior="@string/appbar_scrolling_view_behavior">
 
         <LinearLayout
             android:layout_width="match_parent"
@@ -32,106 +67,341 @@
             android:orientation="vertical"
             android:padding="16dp">
 
-            <TextView
-                android:id="@+id/tvWelcome"
+            <!-- Welcome Header -->
+            <com.google.android.material.card.MaterialCardView
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:text="Welcome, Station Operator"
-                android:textSize="18sp"
-                android:textStyle="bold"
-                android:layout_marginBottom="8dp" />
+                android:layout_marginBottom="24dp"
+                app:cardCornerRadius="16dp"
+                app:cardElevation="2dp"
+                app:strokeWidth="0dp">
 
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"
+                    android:padding="24dp"
+                    android:background="@drawable/gradient_primary">
+
+                    <TextView
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:text="Station Control"
+                        android:textColor="@android:color/white"
+                        android:textSize="16sp"
+                        android:alpha="0.9" />
+
+                    <TextView
+                        android:id="@+id/tvWelcome"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:text="Welcome, Station Operator!"
+                        android:textColor="@android:color/white"
+                        android:textSize="24sp"
+                        android:textStyle="bold"
+                        android:layout_marginTop="4dp" />
+
+                    <TextView
+                        android:id="@+id/tvOperatorInfo"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:text="Station ID: ST001"
+                        android:textColor="@android:color/white"
+                        android:textSize="14sp"
+                        android:layout_marginTop="8dp"
+                        android:alpha="0.8" />
+
+                </LinearLayout>
+
+            </com.google.android.material.card.MaterialCardView>
+
+            <!-- Quick Stats Grid -->
             <TextView
-                android:id="@+id/tvOperatorInfo"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:text="Operator ID: OP001"
-                android:textSize="14sp" />
-
-        </LinearLayout>
-
-    </com.google.android.material.card.MaterialCardView>
-
-    <!-- Quick Actions -->
-    <com.google.android.material.card.MaterialCardView
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_marginBottom="16dp"
-        app:cardElevation="4dp"
-        app:cardCornerRadius="8dp">
-
-        <LinearLayout
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:orientation="vertical"
-            android:padding="16dp">
-
-            <TextView
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="Quick Actions"
+                android:text="Today's Activity"
+                android:textColor="@color/colorTextPrimary"
                 android:textSize="18sp"
                 android:textStyle="bold"
                 android:layout_marginBottom="16dp" />
 
-            <Button
-                android:id="@+id/btnScanQR"
+            <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginBottom="8dp"
-                android:text="📱 Scan QR Code"
-                android:textSize="16sp"
-                android:backgroundTint="@color/primary_color"
-                android:padding="16dp" />
+                android:orientation="horizontal"
+                android:layout_marginBottom="24dp">
 
-            <Button
-                android:id="@+id/btnManualVerify"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginBottom="8dp"
-                android:text="✍️ Manual Verification"
-                android:textSize="16sp"
-                style="@style/Widget.Material3.Button.OutlinedButton"
-                android:padding="16dp" />
+                <!-- Scanned Bookings -->
+                <com.google.android.material.card.MaterialCardView
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:layout_margin="4dp"
+                    app:cardCornerRadius="12dp"
+                    app:cardElevation="4dp"
+                    app:strokeWidth="1dp"
+                    app:strokeColor="@color/colorSuccess">
 
-            <Button
-                android:id="@+id/btnViewActiveBookings"
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="vertical"
+                        android:padding="20dp"
+                        android:gravity="center">
+
+                        <ImageView
+                            android:layout_width="32dp"
+                            android:layout_height="32dp"
+                            android:src="@drawable/ic_qr_code"
+                            app:tint="@color/colorSuccess"
+                            android:layout_marginBottom="8dp" />
+
+                        <TextView
+                            android:id="@+id/tvScannedCount"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="0"
+                            android:textColor="@color/colorSuccess"
+                            android:textSize="28sp"
+                            android:textStyle="bold" />
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="Verified"
+                            android:textColor="@color/colorTextSecondary"
+                            android:textSize="14sp"
+                            android:layout_marginTop="4dp" />
+
+                    </LinearLayout>
+
+                </com.google.android.material.card.MaterialCardView>
+
+                <!-- Active Sessions -->
+                <com.google.android.material.card.MaterialCardView
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:layout_margin="4dp"
+                    app:cardCornerRadius="12dp"
+                    app:cardElevation="4dp"
+                    app:strokeWidth="1dp"
+                    app:strokeColor="@color/green_vibrant">
+
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="vertical"
+                        android:padding="20dp"
+                        android:gravity="center">
+
+                        <ImageView
+                            android:layout_width="32dp"
+                            android:layout_height="32dp"
+                            android:src="@drawable/ic_ev_charging_simple"
+                            app:tint="@color/green_vibrant"
+                            android:layout_marginBottom="8dp" />
+
+                        <TextView
+                            android:id="@+id/tvActiveCount"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="0"
+                            android:textColor="@color/green_vibrant"
+                            android:textSize="28sp"
+                            android:textStyle="bold" />
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="Charging"
+                            android:textColor="@color/colorTextSecondary"
+                            android:textSize="14sp"
+                            android:layout_marginTop="4dp" />
+
+                    </LinearLayout>
+
+                </com.google.android.material.card.MaterialCardView>
+
+            </LinearLayout>
+
+            <!-- Quick Actions -->
+            <TextView
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:text="📋 View Active Bookings"
+                android:text="Quick Actions"
+                android:textColor="@color/colorTextPrimary"
+                android:textSize="18sp"
+                android:textStyle="bold"
+                android:layout_marginBottom="16dp" />
+
+            <com.google.android.material.card.MaterialCardView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="24dp"
+                app:cardCornerRadius="12dp"
+                app:cardElevation="2dp">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"
+                    android:padding="16dp">
+
+                    <!-- Action Buttons Grid -->
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="vertical">
+
+                        <!-- First Row -->
+                        <LinearLayout
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:orientation="horizontal"
+                            android:layout_marginBottom="8dp">
+
+                            <com.google.android.material.button.MaterialButton
+                                android:id="@+id/btnScanQR"
+                                android:layout_width="0dp"
+                                android:layout_height="wrap_content"
+                                android:layout_weight="1"
+                                android:layout_margin="6dp"
+                                android:text="Scan QR"
+                                android:textSize="14sp"
+                                app:icon="@drawable/ic_qr_code"
+                                app:iconGravity="textStart"
+                                app:iconTint="@android:color/white"
+                                style="@style/Widget.Material3.Button" />
+
+                            <com.google.android.material.button.MaterialButton
+                                android:id="@+id/btnManualVerify"
+                                android:layout_width="0dp"
+                                android:layout_height="wrap_content"
+                                android:layout_weight="1"
+                                android:layout_margin="6dp"
+                                android:text="Manual"
+                                android:textSize="14sp"
+                                app:icon="@drawable/ic_edit"
+                                app:iconGravity="textStart"
+                                style="@style/Widget.Material3.Button.OutlinedButton" />
+
+                        </LinearLayout>
+
+                        <!-- Second Row -->
+                        <LinearLayout
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:orientation="horizontal">
+
+                            <com.google.android.material.button.MaterialButton
+                                android:id="@+id/btnViewActiveBookings"
+                                android:layout_width="0dp"
+                                android:layout_height="wrap_content"
+                                android:layout_weight="1"
+                                android:layout_margin="6dp"
+                                android:text="Bookings"
+                                android:textSize="14sp"
+                                app:icon="@drawable/ic_list"
+                                app:iconGravity="textStart"
+                                style="@style/Widget.Material3.Button.OutlinedButton" />
+
+                            <com.google.android.material.button.MaterialButton
+                                android:id="@+id/btnProfile"
+                                android:layout_width="0dp"
+                                android:layout_height="wrap_content"
+                                android:layout_weight="1"
+                                android:layout_margin="6dp"
+                                android:text="Profile"
+                                android:textSize="14sp"
+                                app:icon="@drawable/ic_profile"
+                                app:iconGravity="textStart"
+                                style="@style/Widget.Material3.Button.OutlinedButton" />
+
+                        </LinearLayout>
+
+                    </LinearLayout>
+
+                </LinearLayout>
+
+            </com.google.android.material.card.MaterialCardView>
+
+            <!-- Recent Activities -->
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="Recent Activities"
+                android:textColor="@color/colorTextPrimary"
+                android:textSize="18sp"
+                android:textStyle="bold"
+                android:layout_marginBottom="16dp" />
+
+            <com.google.android.material.card.MaterialCardView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                app:cardCornerRadius="12dp"
+                app:cardElevation="2dp">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical">
+
+                    <androidx.recyclerview.widget.RecyclerView
+                        android:id="@+id/rvRecentActivities"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:padding="8dp"
+                        android:nestedScrollingEnabled="false" />
+
+                    <TextView
+                        android:id="@+id/tvNoActivities"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:text="No recent activities\nStart scanning QR codes to track activities!"
+                        android:textColor="@color/colorTextSecondary"
+                        android:textSize="16sp"
+                        android:gravity="center"
+                        android:padding="40dp"
+                        android:visibility="visible"
+                        android:drawableTop="@drawable/ic_qr_code"
+                        android:drawableTint="@color/colorPrimary"
+                        android:drawablePadding="16dp" />
+
+                </LinearLayout>
+
+            </com.google.android.material.card.MaterialCardView>
+
+            <!-- Logout Button -->
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btnLogout"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="32dp"
+                android:text="Logout"
                 android:textSize="16sp"
+                app:icon="@drawable/ic_logout"
+                app:iconGravity="textStart"
                 style="@style/Widget.Material3.Button.OutlinedButton"
-                android:padding="16dp" />
+                app:strokeColor="@color/colorDanger"
+                android:textColor="@color/colorDanger"
+                app:iconTint="@color/colorDanger" />
 
         </LinearLayout>
 
-    </com.google.android.material.card.MaterialCardView>
+    </androidx.core.widget.NestedScrollView>
 
-    <!-- Profile Button -->
-    <Button
-        android:id="@+id/btnProfile"
-        android:layout_width="match_parent"
+    <!-- Floating Action Button for Quick QR Scan -->
+    <com.google.android.material.floatingactionbutton.FloatingActionButton
+        android:id="@+id/fabScanQR"
+        android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_marginBottom="16dp"
-        android:text="👤 View Profile"
-        android:textSize="16sp"
-        style="@style/Widget.Material3.Button.OutlinedButton"
-        android:padding="16dp" />
+        android:layout_gravity="bottom|end"
+        android:layout_margin="16dp"
+        android:src="@drawable/ic_qr_code"
+        app:backgroundTint="@color/colorPrimary"
+        app:tint="@android:color/white"
+        android:contentDescription="Quick QR Scan"
+        app:layout_anchorGravity="bottom|end" />
 
-    <!-- Spacer -->
-    <View
-        android:layout_width="match_parent"
-        android:layout_height="0dp"
-        android:layout_weight="1" />
-
-    <!-- Logout Button -->
-    <Button
-        android:id="@+id/btnLogout"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:text="Logout"
-        android:backgroundTint="@android:color/holo_red_dark"
-        android:textColor="@android:color/white"
-        android:padding="16dp" />
-
-</LinearLayout>
+</androidx.coordinatorlayout.widget.CoordinatorLayout>

@@ -1,0 +1,275 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.coordinatorlayout.widget.CoordinatorLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@color/background_light">
+
+    <!-- App Bar -->
+    <com.google.android.material.appbar.AppBarLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:theme="@style/ThemeOverlay.AppCompat.Dark.ActionBar">
+
+        <androidx.appcompat.widget.Toolbar
+            android:id="@+id/toolbar"
+            android:layout_width="match_parent"
+            android:layout_height="?attr/actionBarSize"
+            android:background="@drawable/gradient_green_background"
+            app:popupTheme="@style/ThemeOverlay.AppCompat.Light" />
+
+    </com.google.android.material.appbar.AppBarLayout>
+
+    <!-- Main Content -->
+    <androidx.core.widget.NestedScrollView
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:fillViewport="true"
+        app:layout_behavior="@string/appbar_scrolling_view_behavior">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:padding="16dp">
+
+            <!-- Customer Information Card -->
+            <com.google.android.material.card.MaterialCardView
+                android:id="@+id/cvCustomerInfo"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="16dp"
+                app:cardCornerRadius="12dp"
+                app:cardElevation="4dp">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"
+                    android:padding="20dp">
+
+                    <TextView
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginBottom="12dp"
+                        android:text="Customer Information"
+                        android:textColor="@color/primary_green"
+                        android:textSize="18sp"
+                        android:textStyle="bold" />
+
+                    <TextView
+                        android:id="@+id/tvBookingId"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginBottom="8dp"
+                        android:text="Booking ID: "
+                        android:textColor="@color/text_primary"
+                        android:textSize="16sp"
+                        android:textStyle="bold" />
+
+                    <TextView
+                        android:id="@+id/tvCustomerNIC"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:text="Customer: "
+                        android:textColor="@color/text_primary"
+                        android:textSize="14sp" />
+
+                </LinearLayout>
+
+            </com.google.android.material.card.MaterialCardView>
+
+            <!-- Booking Details Card -->
+            <com.google.android.material.card.MaterialCardView
+                android:id="@+id/cvBookingDetails"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="16dp"
+                app:cardCornerRadius="12dp"
+                app:cardElevation="4dp">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"
+                    android:padding="20dp">
+
+                    <TextView
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginBottom="12dp"
+                        android:text="Booking Details"
+                        android:textColor="@color/primary_green"
+                        android:textSize="18sp"
+                        android:textStyle="bold" />
+
+                    <TextView
+                        android:id="@+id/tvStationInfo"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginBottom="8dp"
+                        android:text="Station: "
+                        android:textColor="@color/text_primary"
+                        android:textSize="14sp" />
+
+                    <TextView
+                        android:id="@+id/tvDateTime"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginBottom="8dp"
+                        android:text="Date &amp; Time: "
+                        android:textColor="@color/text_primary"
+                        android:textSize="14sp" />
+
+                    <TextView
+                        android:id="@+id/tvDuration"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginBottom="8dp"
+                        android:text="Duration: "
+                        android:textColor="@color/text_primary"
+                        android:textSize="14sp" />
+
+                    <TextView
+                        android:id="@+id/tvCurrentStatus"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:text="Status: "
+                        android:textColor="@color/text_primary"
+                        android:textSize="16sp"
+                        android:textStyle="bold" />
+
+                </LinearLayout>
+
+            </com.google.android.material.card.MaterialCardView>
+
+            <!-- Status Action Card -->
+            <com.google.android.material.card.MaterialCardView
+                android:id="@+id/cvStatusActions"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="16dp"
+                app:cardCornerRadius="12dp"
+                app:cardElevation="4dp">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"
+                    android:padding="20dp">
+
+                    <TextView
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginBottom="16dp"
+                        android:text="Booking Actions"
+                        android:textColor="@color/primary_green"
+                        android:textSize="18sp"
+                        android:textStyle="bold" />
+
+                    <!-- Action Buttons -->
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="vertical">
+
+                        <com.google.android.material.button.MaterialButton
+                            android:id="@+id/btnApprove"
+                            android:layout_width="match_parent"
+                            android:layout_height="56dp"
+                            android:layout_marginBottom="8dp"
+                            android:backgroundTint="@color/status_approved"
+                            android:text="Approve Booking"
+                            android:textColor="@android:color/white"
+                            android:textSize="16sp"
+                            android:textStyle="bold"
+                            app:cornerRadius="28dp"
+                            app:icon="@drawable/ic_check"
+                            app:iconGravity="textStart"
+                            app:iconPadding="8dp"
+                            app:iconTint="@android:color/white" />
+
+                        <com.google.android.material.button.MaterialButton
+                            android:id="@+id/btnStartCharging"
+                            android:layout_width="match_parent"
+                            android:layout_height="56dp"
+                            android:layout_marginBottom="8dp"
+                            android:backgroundTint="@color/status_started"
+                            android:text="Start Charging"
+                            android:textColor="@android:color/white"
+                            android:textSize="16sp"
+                            android:textStyle="bold"
+                            app:cornerRadius="28dp"
+                            app:icon="@drawable/ic_ev_charging"
+                            app:iconGravity="textStart"
+                            app:iconPadding="8dp"
+                            app:iconTint="@android:color/white" />
+
+                        <com.google.android.material.button.MaterialButton
+                            android:id="@+id/btnComplete"
+                            android:layout_width="match_parent"
+                            android:layout_height="56dp"
+                            android:layout_marginBottom="8dp"
+                            android:backgroundTint="@color/status_completed"
+                            android:text="Mark Completed"
+                            android:textColor="@android:color/white"
+                            android:textSize="16sp"
+                            android:textStyle="bold"
+                            app:cornerRadius="28dp"
+                            app:icon="@drawable/ic_done_all"
+                            app:iconGravity="textStart"
+                            app:iconPadding="8dp"
+                            app:iconTint="@android:color/white" />
+
+                        <com.google.android.material.button.MaterialButton
+                            android:id="@+id/btnCancel"
+                            android:layout_width="match_parent"
+                            android:layout_height="56dp"
+                            android:layout_marginBottom="8dp"
+                            android:backgroundTint="@color/status_cancelled"
+                            android:text="Cancel Booking"
+                            android:textColor="@android:color/white"
+                            android:textSize="16sp"
+                            android:textStyle="bold"
+                            app:cornerRadius="28dp"
+                            app:icon="@drawable/ic_cancel"
+                            app:iconGravity="textStart"
+                            app:iconPadding="8dp"
+                            app:iconTint="@android:color/white" />
+
+                        <com.google.android.material.button.MaterialButton
+                            android:id="@+id/btnRefresh"
+                            android:layout_width="match_parent"
+                            android:layout_height="56dp"
+                            android:backgroundTint="@color/secondary_green"
+                            android:text="Refresh Data"
+                            android:textColor="@android:color/white"
+                            android:textSize="16sp"
+                            app:cornerRadius="28dp"
+                            app:icon="@drawable/ic_refresh"
+                            app:iconGravity="textStart"
+                            app:iconPadding="8dp"
+                            app:iconTint="@android:color/white" />
+
+                    </LinearLayout>
+
+                </LinearLayout>
+
+            </com.google.android.material.card.MaterialCardView>
+
+            <!-- Progress Bar -->
+            <ProgressBar
+                android:id="@+id/progressBar"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_gravity="center_horizontal"
+                android:layout_marginTop="24dp"
+                android:indeterminateTint="@color/primary_green"
+                android:visibility="gone" />
+
+        </LinearLayout>
+
+    </androidx.core.widget.NestedScrollView>
+
+</androidx.coordinatorlayout.widget.CoordinatorLayout>
