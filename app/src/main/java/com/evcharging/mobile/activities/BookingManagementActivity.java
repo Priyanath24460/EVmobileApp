@@ -37,6 +37,9 @@ public class BookingManagementActivity extends AppCompatActivity {
     private Booking currentBooking;
     private String operatorUsername;
     private ApiService apiService;
+    private boolean isAuthorizedStation = true; // Default to true, will be validated
+    private String operatorStationId = null;
+    private String operatorStationName = null;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -47,8 +50,9 @@ public class BookingManagementActivity extends AppCompatActivity {
         setupToolbar();
         initializeData();
         setupClickListeners();
-        displayBookingInfo();
-        updateStatusButtons();
+        
+        // Show loading state while validation is in progress
+        showValidationInProgress();
     }
 
     private void initializeViews() {
@@ -99,6 +103,15 @@ public class BookingManagementActivity extends AppCompatActivity {
         }
         
         Log.d(TAG, "Managing booking: " + currentBooking.getId() + " by operator: " + operatorUsername);
+        
+        // Ensure booking station name is available
+        if ((currentBooking.getStationName() == null || currentBooking.getStationName().isEmpty()) 
+            && currentBooking.getChargingStationId() != null) {
+            fetchBookingStationName();
+        } else {
+            // Validate if this booking belongs to the operator's station
+            validateStationAccess();
+        }
     }
 
     private void setupClickListeners() {
@@ -132,17 +145,44 @@ public class BookingManagementActivity extends AppCompatActivity {
     private void displayBookingInfo() {
         if (currentBooking == null) return;
         
-        // Basic booking info
-        tvBookingId.setText("Booking ID: " + currentBooking.getId());
+        // Basic booking info with authorization warning
+        String bookingIdText = "Booking ID: " + currentBooking.getId();
+        if (!isAuthorizedStation) {
+            bookingIdText += "\n⚠️ DIFFERENT STATION - READ ONLY";
+        }
+        tvBookingId.setText(bookingIdText);
+        tvBookingId.setTextColor(isAuthorizedStation ? 
+            getResources().getColor(R.color.on_surface, null) : 
+            getResources().getColor(R.color.error, null));
+        
         tvCustomerNIC.setText("Customer: " + currentBooking.getEvOwnerNIC());
         
-        // Station and time info
+        // Station info with emphasis on station mismatch
         String stationInfo = "Station: " + (currentBooking.getStationName() != null ? 
             currentBooking.getStationName() : currentBooking.getChargingStationId());
+        stationInfo += "\nStation ID: " + currentBooking.getChargingStationId();
+        
         if (currentBooking.getSlotId() != null) {
             stationInfo += "\nCharging Point: " + currentBooking.getSlotId();
         }
+        
+        if (!isAuthorizedStation) {
+            stationInfo += "\n\n🚫 NOT YOUR ASSIGNED STATION";
+            if (operatorStationId != null) {
+                String yourStation = "✓ Your Station: ";
+                if (operatorStationName != null && !operatorStationName.isEmpty()) {
+                    yourStation += operatorStationName + " (ID: " + operatorStationId + ")";
+                } else {
+                    yourStation += "ID: " + operatorStationId;
+                }
+                stationInfo += "\n" + yourStation;
+            }
+        }
+        
         tvStationInfo.setText(stationInfo);
+        tvStationInfo.setTextColor(isAuthorizedStation ? 
+            getResources().getColor(R.color.on_surface, null) : 
+            getResources().getColor(R.color.error, null));
         
         tvDateTime.setText("Date & Time: " + DateUtils.formatDateTime(currentBooking.getReservationDateTime()));
         tvDuration.setText("Duration: " + currentBooking.getDurationMinutes() + " minutes");
@@ -186,9 +226,16 @@ public class BookingManagementActivity extends AppCompatActivity {
         btnApprove.setVisibility(View.GONE);
         btnStartCharging.setVisibility(View.GONE);
         btnComplete.setVisibility(View.GONE);
-        btnCancel.setVisibility(View.VISIBLE);
+        btnCancel.setVisibility(View.GONE);
         
-        // Show relevant buttons based on current status
+        // Only show buttons if operator is authorized for this station
+        if (!isAuthorizedStation) {
+            // Hide all action buttons for unauthorized access
+            Log.d(TAG, "Hiding all action buttons - unauthorized station access");
+            return;
+        }
+        
+        // Show relevant buttons based on current status (only for authorized stations)
         switch (currentStatus) {
             case "pending":
                 btnApprove.setVisibility(View.VISIBLE);
@@ -204,7 +251,7 @@ public class BookingManagementActivity extends AppCompatActivity {
                 break;
             case "completed":
             case "cancelled":
-                btnCancel.setVisibility(View.GONE);
+                // No action buttons for completed/cancelled bookings
                 break;
         }
     }
@@ -325,10 +372,247 @@ public class BookingManagementActivity extends AppCompatActivity {
 
     private void hideProgressBar() {
         progressBar.setVisibility(View.GONE);
-        btnApprove.setEnabled(true);
-        btnStartCharging.setEnabled(true);
-        btnComplete.setEnabled(true);
-        btnCancel.setEnabled(true);
+        if (isAuthorizedStation) {
+            btnApprove.setEnabled(true);
+            btnStartCharging.setEnabled(true);
+            btnComplete.setEnabled(true);
+            btnCancel.setEnabled(true);
+        }
         btnRefresh.setEnabled(true);
+    }
+    
+    /**
+     * Show loading state while station validation is in progress
+     */
+    private void showValidationInProgress() {
+        // Show progress bar
+        progressBar.setVisibility(View.VISIBLE);
+        
+        // Hide all content until validation is complete
+        cvCustomerInfo.setVisibility(View.GONE);
+        cvBookingDetails.setVisibility(View.GONE);
+        cvStatusActions.setVisibility(View.GONE);
+        
+        // Show loading message in booking ID field
+        tvBookingId.setText("Validating station access...");
+        tvBookingId.setVisibility(View.VISIBLE);
+    }
+    
+    /**
+     * Show content after validation is complete
+     */
+    private void showValidationComplete() {
+        // Hide progress bar
+        progressBar.setVisibility(View.GONE);
+        
+        // Show all content
+        cvCustomerInfo.setVisibility(View.VISIBLE);
+        cvBookingDetails.setVisibility(View.VISIBLE);
+        cvStatusActions.setVisibility(View.VISIBLE);
+        
+        // Now display the booking information and update buttons
+        displayBookingInfo();
+        updateStatusButtons();
+    }
+    
+    /**
+     * Validate if the current operator can manage this booking
+     * Checks if the booking belongs to the operator's assigned station
+     */
+    private void validateStationAccess() {
+        Log.d(TAG, "Validating station access for operator: " + operatorUsername);
+        
+        // Fetch operator's bookings to determine their assigned station
+        Call<java.util.List<Booking>> call = apiService.getOperatorBookings(operatorUsername);
+        call.enqueue(new Callback<java.util.List<Booking>>() {
+            @Override
+            public void onResponse(Call<java.util.List<Booking>> call, Response<java.util.List<Booking>> response) {
+                if (response.isSuccessful() && response.body() != null && !response.body().isEmpty()) {
+                    // Get the first booking to determine operator's station
+                    Booking operatorBooking = response.body().get(0);
+                    operatorStationId = operatorBooking.getChargingStationId();
+                    operatorStationName = operatorBooking.getStationName();
+                    
+                    Log.d(TAG, "Operator assigned to station: " + operatorStationId + 
+                          " (" + operatorStationName + ")");
+                    Log.d(TAG, "Booking belongs to station: " + currentBooking.getChargingStationId() + 
+                          " (" + currentBooking.getStationName() + ")");
+                    
+                    // Check if the current booking belongs to the operator's station
+                    isAuthorizedStation = operatorStationId.equals(currentBooking.getChargingStationId());
+                    
+                    // If operator station name is missing, try to fetch it
+                    if (operatorStationName == null || operatorStationName.isEmpty()) {
+                        fetchOperatorStationName(operatorStationId);
+                    } else {
+                        runOnUiThread(() -> {
+                            updateUIBasedOnAuthorization();
+                            showValidationComplete();
+                        });
+                    }
+                } else {
+                    Log.w(TAG, "Could not determine operator's assigned station");
+                    // If we can't determine the station, assume unauthorized for security
+                    isAuthorizedStation = false;
+                    runOnUiThread(() -> {
+                        updateUIBasedOnAuthorization();
+                        showValidationComplete();
+                    });
+                }
+            }
+
+            @Override
+            public void onFailure(Call<java.util.List<Booking>> call, Throwable t) {
+                Log.e(TAG, "Failed to validate station access: " + t.getMessage());
+                // If validation fails, assume unauthorized for security
+                isAuthorizedStation = false;
+                runOnUiThread(() -> {
+                    updateUIBasedOnAuthorization();
+                    showValidationComplete();
+                    Toast.makeText(BookingManagementActivity.this, 
+                        "Unable to validate station access. Limited view only.", Toast.LENGTH_LONG).show();
+                });
+            }
+        });
+    }
+    
+    /**
+     * Update UI based on whether operator is authorized to manage this booking
+     */
+    private void updateUIBasedOnAuthorization() {
+        if (!isAuthorizedStation) {
+            // Apply red theme for unauthorized access
+            cvCustomerInfo.setCardBackgroundColor(getResources().getColor(R.color.error_light, null));
+            cvBookingDetails.setCardBackgroundColor(getResources().getColor(R.color.error_light, null));
+            cvStatusActions.setCardBackgroundColor(getResources().getColor(R.color.error_light, null));
+            
+            // Hide all action buttons for unauthorized access
+            btnApprove.setVisibility(View.GONE);
+            btnStartCharging.setVisibility(View.GONE);
+            btnComplete.setVisibility(View.GONE);
+            btnCancel.setVisibility(View.GONE);
+            
+            // Show warning message immediately (this will be called after showValidationComplete)
+            // We'll show it in a post to ensure UI is fully loaded first
+            new android.os.Handler(android.os.Looper.getMainLooper()).post(() -> {
+                showUnauthorizedAccessWarning();
+            });
+        } else {
+            // Keep normal theme for authorized access
+            cvCustomerInfo.setCardBackgroundColor(getResources().getColor(R.color.surface, null));
+            cvBookingDetails.setCardBackgroundColor(getResources().getColor(R.color.surface, null));
+            cvStatusActions.setCardBackgroundColor(getResources().getColor(R.color.surface, null));
+        }
+    }
+    
+    /**
+     * Show warning dialog for unauthorized station access
+     */
+    private void showUnauthorizedAccessWarning() {
+        // Build booking station info with name and ID
+        String bookingStationInfo;
+        if (currentBooking.getStationName() != null && !currentBooking.getStationName().isEmpty()) {
+            bookingStationInfo = currentBooking.getStationName() + "\n   ID: " + currentBooking.getChargingStationId();
+        } else {
+            bookingStationInfo = "ID: " + currentBooking.getChargingStationId();
+        }
+        
+        // Build operator station info with name and ID
+        String operatorStationInfo;
+        if (operatorStationName != null && !operatorStationName.isEmpty()) {
+            operatorStationInfo = operatorStationName + "\n   ID: " + operatorStationId;
+        } else if (operatorStationId != null) {
+            operatorStationInfo = "ID: " + operatorStationId;
+        } else {
+            operatorStationInfo = "Unable to determine";
+        }
+        
+        String warningMessage = "⚠️ UNAUTHORIZED STATION ACCESS ⚠️\n\n" +
+            "This booking belongs to a different charging station.\n\n" +
+            "📍 BOOKING STATION:\n" + bookingStationInfo + "\n\n" +
+            "✓ YOUR ASSIGNED STATION:\n" + operatorStationInfo + "\n\n" +
+            "🔒 SECURITY POLICY:\n" +
+            "You can only manage bookings from your assigned station.\n\n" +
+            "📖 This is a read-only view for security purposes.";
+            
+        new androidx.appcompat.app.AlertDialog.Builder(this)
+            .setTitle("Station Access Denied")
+            .setMessage(warningMessage)
+            .setIcon(R.drawable.ic_warning)
+            .setPositiveButton("I Understand", null)
+            .setCancelable(false)
+            .show();
+    }
+    
+    /**
+     * Fetch operator's station name if it's missing
+     */
+    private void fetchOperatorStationName(String stationId) {
+        Log.d(TAG, "Fetching operator station name for ID: " + stationId);
+        
+        Call<com.evcharging.mobile.models.ChargingStation> call = apiService.getStationById(stationId);
+        call.enqueue(new Callback<com.evcharging.mobile.models.ChargingStation>() {
+            @Override
+            public void onResponse(Call<com.evcharging.mobile.models.ChargingStation> call, 
+                                 Response<com.evcharging.mobile.models.ChargingStation> response) {
+                if (response.isSuccessful() && response.body() != null) {
+                    operatorStationName = response.body().getName();
+                    Log.d(TAG, "Operator station name fetched: " + operatorStationName);
+                } else {
+                    Log.w(TAG, "Could not fetch operator station name, using ID only");
+                }
+                
+                runOnUiThread(() -> {
+                    updateUIBasedOnAuthorization();
+                    showValidationComplete();
+                });
+            }
+
+            @Override
+            public void onFailure(Call<com.evcharging.mobile.models.ChargingStation> call, Throwable t) {
+                Log.w(TAG, "Failed to fetch operator station name: " + t.getMessage());
+                
+                runOnUiThread(() -> {
+                    updateUIBasedOnAuthorization();
+                    showValidationComplete();
+                });
+            }
+        });
+    }
+    
+    /**
+     * Fetch booking's station name if it's missing
+     */
+    private void fetchBookingStationName() {
+        String stationId = currentBooking.getChargingStationId();
+        Log.d(TAG, "Fetching booking station name for ID: " + stationId);
+        
+        Call<com.evcharging.mobile.models.ChargingStation> call = apiService.getStationById(stationId);
+        call.enqueue(new Callback<com.evcharging.mobile.models.ChargingStation>() {
+            @Override
+            public void onResponse(Call<com.evcharging.mobile.models.ChargingStation> call, 
+                                 Response<com.evcharging.mobile.models.ChargingStation> response) {
+                if (response.isSuccessful() && response.body() != null) {
+                    currentBooking.setStationName(response.body().getName());
+                    if (response.body().getLocation() != null) {
+                        currentBooking.setStationAddress(response.body().getLocation().getFullAddress());
+                    }
+                    Log.d(TAG, "Booking station name fetched: " + currentBooking.getStationName());
+                } else {
+                    Log.w(TAG, "Could not fetch booking station name, using ID only");
+                }
+                
+                // Now proceed with station validation
+                validateStationAccess();
+            }
+
+            @Override
+            public void onFailure(Call<com.evcharging.mobile.models.ChargingStation> call, Throwable t) {
+                Log.w(TAG, "Failed to fetch booking station name: " + t.getMessage());
+                
+                // Proceed with validation even if station name fetch fails
+                validateStationAccess();
+            }
+        });
     }
 }

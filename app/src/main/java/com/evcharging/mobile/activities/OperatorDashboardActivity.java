@@ -18,6 +18,7 @@ import com.evcharging.mobile.api.ApiClient;
 import com.evcharging.mobile.api.ApiService;
 import com.evcharging.mobile.models.User;
 import com.evcharging.mobile.utils.SharedPreferencesHelper;
+import com.evcharging.mobile.utils.StationOperatorManager;
 import com.google.zxing.integration.android.IntentIntegrator;
 import com.google.zxing.integration.android.IntentResult;
 
@@ -34,14 +35,39 @@ public class OperatorDashboardActivity extends AppCompatActivity {
     private static final int CAMERA_PERMISSION_REQUEST = 100;
 
     @Override
+    protected void onResume() {
+        super.onResume();
+        
+        // Update activity timestamp when user returns to the app
+        if (prefs != null && prefs.isLoggedIn() && prefs.isSessionValid()) {
+            prefs.updateLastActivity();
+        }
+    }
+
+    @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_operator_dashboard);
 
-        initializeViews();
-        loadOperatorData();
-        setupClickListeners();
-        checkCameraPermission();
+        // Initialize prefs first for session validation
+        prefs = new SharedPreferencesHelper(this);
+        
+        // Validate session and update activity timestamp
+        if (prefs.isLoggedIn() && prefs.isSessionValid()) {
+            prefs.updateLastActivity();
+            initializeViews();
+            loadOperatorData();
+            setupClickListeners();
+            checkCameraPermission();
+        } else {
+            // Session expired - redirect to login
+            prefs.clearUserData();
+            Intent intent = new Intent(this, LoginActivity.class);
+            intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
+            startActivity(intent);
+            finish();
+            return;
+        }
     }
 
     private void initializeViews() {
@@ -56,7 +82,6 @@ public class OperatorDashboardActivity extends AppCompatActivity {
         btnLogout = findViewById(R.id.btnLogout);
         fabScanQR = findViewById(R.id.fabScanQR);
 
-        prefs = new SharedPreferencesHelper(this);
         apiService = ApiClient.getClient(this).create(ApiService.class);
     }
 
@@ -92,6 +117,12 @@ public class OperatorDashboardActivity extends AppCompatActivity {
         btnProfile.setOnClickListener(v -> viewProfile());
         btnLogout.setOnClickListener(v -> logout());
         fabScanQR.setOnClickListener(v -> startNewQRScanner());
+        
+        // Debug: Long press on welcome text to show session info
+        tvWelcome.setOnLongClickListener(v -> {
+            com.evcharging.mobile.utils.SessionDebugger.showSessionInfo(this);
+            return true;
+        });
     }
 
     private void checkCameraPermission() {
@@ -183,9 +214,10 @@ public class OperatorDashboardActivity extends AppCompatActivity {
 
     private void logout() {
         new androidx.appcompat.app.AlertDialog.Builder(this)
-                .setTitle("Logout")
-                .setMessage("Are you sure you want to logout?")
-                .setPositiveButton("Yes", (dialog, which) -> {
+                .setTitle("Logout Options")
+                .setMessage("Choose logout option:")
+                .setPositiveButton("Logout Only", (dialog, which) -> {
+                    // Simple logout - keep cached credentials for offline access
                     prefs.clearUserData();
                     Toast.makeText(this, "Logged out successfully", Toast.LENGTH_SHORT).show();
                     Intent intent = new Intent(this, LoginActivity.class);
@@ -193,7 +225,20 @@ public class OperatorDashboardActivity extends AppCompatActivity {
                     startActivity(intent);
                     finish();
                 })
-                .setNegativeButton("No", null)
+                .setNegativeButton("Clear Cache & Logout", (dialog, which) -> {
+                    // Logout and clear cached credentials (requires internet for next login)
+                    String username = prefs.getLoggedInUserNIC();
+                    StationOperatorManager operatorManager = new StationOperatorManager(this);
+                    operatorManager.clearOperatorCredentials(username);
+                    
+                    prefs.clearUserData();
+                    Toast.makeText(this, "Logged out and cleared cached credentials", Toast.LENGTH_SHORT).show();
+                    Intent intent = new Intent(this, LoginActivity.class);
+                    intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
+                    startActivity(intent);
+                    finish();
+                })
+                .setNeutralButton("Cancel", null)
                 .show();
     }
 }

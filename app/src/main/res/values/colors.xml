@@ -57,4 +57,11 @@
     <color name="secondary_green">#81C784</color>
     <color name="text_primary">#212121</color>
     <color name="text_secondary">#757575</color>
+    
+    <!-- Material Design 3 Colors -->
+    <color name="surface">#FFFFFF</color>
+    <color name="on_surface">#212121</color>
+    <color name="error">#F44336</color>
+    <color name="error_light">#FFCDD2</color>
+    <color name="on_error">#FFFFFF</color>
 </resources>

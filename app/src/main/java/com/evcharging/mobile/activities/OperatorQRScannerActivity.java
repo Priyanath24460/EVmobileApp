@@ -148,15 +148,14 @@ public class OperatorQRScannerActivity extends AppCompatActivity {
         call.enqueue(new Callback<Booking>() {
             @Override
             public void onResponse(Call<Booking> call, Response<Booking> response) {
-                hideProgressBar();
-                
                 if (response.isSuccessful() && response.body() != null) {
                     Booking booking = response.body();
                     Log.d(TAG, "Booking fetched successfully: " + booking.getId());
                     
-                    // Show booking management screen
-                    showBookingManagementScreen(booking);
+                    // Fetch station details to get station name
+                    fetchStationDetails(booking);
                 } else {
+                    hideProgressBar();
                     String errorMsg = "Booking not found (Code: " + response.code() + ")";
                     tvScanResult.setText(errorMsg);
                     Toast.makeText(OperatorQRScannerActivity.this, errorMsg, Toast.LENGTH_LONG).show();
@@ -172,6 +171,56 @@ public class OperatorQRScannerActivity extends AppCompatActivity {
                 Toast.makeText(OperatorQRScannerActivity.this, 
                     "Unable to fetch booking details. Please check your connection.", Toast.LENGTH_LONG).show();
                 Log.e(TAG, "Network error fetching booking: " + t.getMessage(), t);
+            }
+        });
+    }
+
+    private void fetchStationDetails(Booking booking) {
+        tvScanResult.setText("Fetching station details...");
+        
+        String stationId = booking.getChargingStationId();
+        if (stationId == null || stationId.isEmpty()) {
+            Log.w(TAG, "No station ID found in booking, proceeding without station name");
+            hideProgressBar();
+            showBookingManagementScreen(booking);
+            return;
+        }
+        
+        Call<com.evcharging.mobile.models.ChargingStation> call = apiService.getStationById(stationId);
+        call.enqueue(new Callback<com.evcharging.mobile.models.ChargingStation>() {
+            @Override
+            public void onResponse(Call<com.evcharging.mobile.models.ChargingStation> call, 
+                                 Response<com.evcharging.mobile.models.ChargingStation> response) {
+                hideProgressBar();
+                
+                if (response.isSuccessful() && response.body() != null) {
+                    com.evcharging.mobile.models.ChargingStation station = response.body();
+                    
+                    // Populate booking with station details
+                    booking.setStationName(station.getName());
+                    if (station.getLocation() != null) {
+                        booking.setStationAddress(station.getLocation().getFullAddress());
+                    }
+                    
+                    Log.d(TAG, "Station details fetched: " + station.getName() + " (ID: " + station.getId() + ")");
+                    tvScanResult.setText("Booking and station details loaded successfully");
+                } else {
+                    Log.w(TAG, "Station details not found (Code: " + response.code() + "), proceeding with ID only");
+                    tvScanResult.setText("Booking loaded (station details unavailable)");
+                }
+                
+                // Show booking management screen regardless of station fetch result
+                showBookingManagementScreen(booking);
+            }
+
+            @Override
+            public void onFailure(Call<com.evcharging.mobile.models.ChargingStation> call, Throwable t) {
+                hideProgressBar();
+                Log.w(TAG, "Failed to fetch station details: " + t.getMessage() + ", proceeding with ID only");
+                tvScanResult.setText("Booking loaded (station details unavailable)");
+                
+                // Show booking management screen even if station fetch fails
+                showBookingManagementScreen(booking);
             }
         });
     }

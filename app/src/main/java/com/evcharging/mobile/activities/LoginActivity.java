@@ -13,6 +13,7 @@ import com.evcharging.mobile.database.AppDatabase;
 import com.evcharging.mobile.database.UserDao;
 import com.evcharging.mobile.models.User;
 import com.evcharging.mobile.utils.SharedPreferencesHelper;
+import com.evcharging.mobile.utils.StationOperatorManager;
 import com.google.android.material.textfield.TextInputEditText;
 
 public class LoginActivity extends AppCompatActivity {
@@ -196,65 +197,33 @@ public class LoginActivity extends AppCompatActivity {
     }
 
     private void loginStationOperator(String username, String password) {
-        try {
-            // Use API authentication for station operators
-            com.evcharging.mobile.api.ApiService api = com.evcharging.mobile.api.ApiClient.getClient(this).create(com.evcharging.mobile.api.ApiService.class);
-            com.evcharging.mobile.api.AuthRequest request = new com.evcharging.mobile.api.AuthRequest(username, password);
-            
-            retrofit2.Call<com.evcharging.mobile.api.AuthResponse> call = api.authenticateUser(request);
-            call.enqueue(new retrofit2.Callback<com.evcharging.mobile.api.AuthResponse>() {
-                @Override
-                public void onResponse(retrofit2.Call<com.evcharging.mobile.api.AuthResponse> call, retrofit2.Response<com.evcharging.mobile.api.AuthResponse> response) {
-                    try {
-                        if (response.isSuccessful() && response.body() != null && response.body().isSuccess()) {
-                            prefs.setLoggedIn(true);
-                            prefs.setLoggedInUserNIC(username);
-                            prefs.setUserType("StationOperator");
+        StationOperatorManager operatorManager = new StationOperatorManager(this);
+        
+        operatorManager.authenticateOperator(username, password, new StationOperatorManager.LoginCallback() {
+            @Override
+            public void onSuccess(User operator, boolean isOfflineMode) {
+                runOnUiThread(() -> {
+                    // Set session data
+                    prefs.setLoggedIn(true);
+                    prefs.setLoggedInUserNIC(username);
+                    prefs.setUserType("StationOperator");
 
-                            Toast.makeText(LoginActivity.this, "Login successful!", Toast.LENGTH_SHORT).show();
-                            
-                            Intent intent = new Intent(LoginActivity.this, OperatorDashboardActivity.class);
-                            startActivity(intent);
-                            finish();
-                        } else {
-                            String message = response.body() != null ? response.body().getMessage() : "Invalid credentials";
-                            Toast.makeText(LoginActivity.this, message, Toast.LENGTH_SHORT).show();
-                        }
-                    } catch (Exception e) {
-                        android.util.Log.e("LoginActivity", "Error in onResponse: " + e.getMessage(), e);
-                        Toast.makeText(LoginActivity.this, "Login error: " + e.getMessage(), Toast.LENGTH_LONG).show();
-                    }
-                }
+                    String modeText = isOfflineMode ? " (Offline Mode)" : "";
+                    Toast.makeText(LoginActivity.this, "Login successful!" + modeText, Toast.LENGTH_SHORT).show();
+                    
+                    Intent intent = new Intent(LoginActivity.this, OperatorDashboardActivity.class);
+                    startActivity(intent);
+                    finish();
+                });
+            }
 
-                @Override
-                public void onFailure(retrofit2.Call<com.evcharging.mobile.api.AuthResponse> call, Throwable t) {
-                    try {
-                        android.util.Log.e("LoginActivity", "API call failed: " + t.getMessage(), t);
-                        
-                        // Fallback to demo credentials if API fails
-                        if ("operator".equals(username) && "operator123".equals(password)) {
-                            prefs.setLoggedIn(true);
-                            prefs.setLoggedInUserNIC(username);
-                            prefs.setUserType("StationOperator");
-
-                            Toast.makeText(LoginActivity.this, "Login successful! (Demo Mode)", Toast.LENGTH_SHORT).show();
-                            
-                            Intent intent = new Intent(LoginActivity.this, OperatorDashboardActivity.class);
-                            startActivity(intent);
-                            finish();
-                        } else {
-                            Toast.makeText(LoginActivity.this, "Network error: " + t.getMessage(), Toast.LENGTH_LONG).show();
-                        }
-                    } catch (Exception e) {
-                        android.util.Log.e("LoginActivity", "Error in onFailure: " + e.getMessage(), e);
-                        Toast.makeText(LoginActivity.this, "Unexpected error during login", Toast.LENGTH_LONG).show();
-                    }
-                }
-            });
-        } catch (Exception e) {
-            android.util.Log.e("LoginActivity", "Error in loginStationOperator: " + e.getMessage(), e);
-            Toast.makeText(this, "Error initializing login: " + e.getMessage(), Toast.LENGTH_LONG).show();
-        }
+            @Override
+            public void onError(String message) {
+                runOnUiThread(() -> {
+                    Toast.makeText(LoginActivity.this, message, Toast.LENGTH_LONG).show();
+                });
+            }
+        });
     }
 
     private void navigateToRegistration() {
