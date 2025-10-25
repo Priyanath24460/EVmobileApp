@@ -155,7 +155,8 @@ public class OperatorBookingsActivity extends AppCompatActivity {
 
         for (Booking booking : allBookings) {
             String status = booking.getStatus();
-            if ("Approved".equalsIgnoreCase(status) || "Active".equalsIgnoreCase(status)) {
+            // Active count now shows only "Started" bookings (charging sessions in progress)
+            if ("Started".equalsIgnoreCase(status)) {
                 activeCount++;
             } else if ("Completed".equalsIgnoreCase(status) || "Cancelled".equalsIgnoreCase(status)) {
                 completedCount++;
@@ -177,7 +178,8 @@ public class OperatorBookingsActivity extends AppCompatActivity {
             case "ACTIVE":
                 for (Booking booking : allBookings) {
                     String status = booking.getStatus();
-                    if ("Approved".equalsIgnoreCase(status) || "Active".equalsIgnoreCase(status)) {
+                    // Active filter now shows only "Started" bookings (charging sessions in progress)
+                    if ("Started".equalsIgnoreCase(status)) {
                         filteredBookings.add(booking);
                     }
                 }
