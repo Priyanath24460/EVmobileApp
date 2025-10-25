@@ -80,7 +80,7 @@ public class LoginActivity extends AppCompatActivity {
 
         String userType = (selectedId == R.id.rbEVOwner) ? "EVOwner" : "StationOperator";
 
-        // For demo purposes - in real app, this would be API call
+        
         if (userType.equals("EVOwner")) {
             loginEVOwner(nic, password);
         } else {

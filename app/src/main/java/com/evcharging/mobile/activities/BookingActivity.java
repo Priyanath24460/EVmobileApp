@@ -812,6 +812,18 @@ public class BookingActivity extends AppCompatActivity {
             return;
         }
 
+        // Check if trying to book past time slot for today
+        SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd", Locale.getDefault());
+        String todayDate = sdf.format(new Date());
+        if (selectedDate.equals(todayDate)) {
+            Calendar now = Calendar.getInstance();
+            int currentHour = now.get(Calendar.HOUR_OF_DAY);
+            if (selectedTimeSlot.getHour() <= currentHour) {
+                Toast.makeText(this, "Cannot book past or current time slots. Please select a future time slot.", Toast.LENGTH_LONG).show();
+                return;
+            }
+        }
+
         // Get the logged in user's NIC
         String userNIC = prefs.getLoggedInUserNIC();
         if (userNIC == null || userNIC.trim().isEmpty()) {
